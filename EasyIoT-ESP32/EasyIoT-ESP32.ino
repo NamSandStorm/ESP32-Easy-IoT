@@ -83,6 +83,9 @@
       - changed login command to user [username] [password]
       - changed logout command to user logout
       - added factory reset option in console
+    2023.03.08
+      - added preferences functionality
+      - broke a lot
   */
 /* [To Do]: ----------------------------------------------------------------------------------------------- */
     /*
@@ -199,18 +202,19 @@
     bool MQTTDiagnosticMessagesEnabled; //Diagnostic notifications
     String MQTThost                         = "mozzie.iot.com.na";
     int MQTTport                            = 1883;
-    String MQTTControllerRootPath           = "IoTdevices/";
-    String MQTTusername                     = "ESP32-IoT";
-    String MQTTpassword                     = "ESP32-IoT";
+    String MQTTControllerRootPath           = "EasyIoT/";
+    String MQTTusername                     = "EasyIoT";
+    String MQTTpassword                     = "EasyIoT";
     String UserName[2]                     = {"user","admin"};    //only admin working at this stage
     String UserPassword[2]                 = {"user","admin"};   //only admin working at this stage
     void PreferencesSetup(){
       preferences.begin("preferences", false);
       //Start Counter
-        TotalStarts = preferences.getLong("TotalStarts", 0);++TotalStarts;
+        TotalStarts = preferences.getLong("TotalStarts", 0);
+        ++TotalStarts;
         preferences.putLong("TotalStarts",TotalStarts);
-        PreferencesInit();
-        PreferencesRead();
+        //PreferencesInit();
+        //PreferencesRead();
       }
     void PreferencesInit(){
       //Diagnostics
@@ -296,10 +300,10 @@
     }
 /* [Variables]: ------------------------------------------------------------------------------------------- */
   /* [V: Device / Server etc. Unique]: -------------------------------------------------------------------- */
-    #define ProductName                      "ESP32-IoT"   
-    #define UIDProductName                   "ESP32-IoT-"    
+    #define ProductName                      "EasyIoT"   
+    #define UIDProductName                   "EasyIoT-"    
     #define FirmwareVersion                  "00.00.00.01"    
-    #define JoinWiFiSSID                     "Join ESP32-IoT device to WiFi"
+    #define JoinWiFiSSID                     "Join your EasyIoT device to WiFi"
     #define JoinWiFiPassword                 "password"
     #define timezone_offset                  0
   /* [V: Authentication and Security]: -------------------------------------------------------------------- */
@@ -426,6 +430,7 @@
       MQTT.setCallback(MQTTcallback);
       MQTTLoop();
       MQTTMessage(MQTTwillTopic, "true");
+      Serial.println("MQTT config: complete");
     }
     void MQTTLoop(){
       if (!MQTT.connected()) {
@@ -482,142 +487,7 @@
       }
     }
     
-/* [Console Functions]: ----------------------------------------------------------------------------------- */      
-  /* [C: Console Evaluate]: ------------------------------------------------------------------------------- */     
-    String ConsoleCommand[6];
-    void SplitCommand(String text,String separator=" "){
-    //break up the instruction into max 6 parameters
-      text.replace("\n","");
-      int length=text.length();
-      int ConsoleCommands=0;
-      ConsoleCommand[0]="";
-      String test="";
-      for (int i = 0; i < length; i++) {
-        test=text.substring(i,i+1);
-        if (test==separator){
-          ConsoleCommands++;
-          ConsoleCommand[ConsoleCommands]="";
-        }
-        else {
-          ConsoleCommand[ConsoleCommands]=ConsoleCommand[ConsoleCommands]+test;
-        }
-      }
-    }
-    
-    void ConsoleEvaluate(String message){
-      SplitCommand(message);
-      if(message!="message received ..."){
-        //clear old commands from console, important for public facing MQTT        
-        Message("message received ...","/console");
-      }
-      Message("console evaluate commencing","/console/",true);
-      if(UserLoggedInStatus[0]){      
-        //default user
-        Serial.println("user 0 ...");
-      }
-      else if(UserLoggedInStatus[1]){      
-        //admin user
-        if (ConsoleCommand[0]=="serialdiag"){
-          //toggle SerialDiag
-          if (ConsoleCommand[1]== "persistent"){
-            preferences.putBool("SerialDiagnostic",SerialDiagnosticMessagesEnabled);
-            Serial.print ("set Serial Diagnostics Settings to persistent: ");    
-            Serial.println (SerialDiagnosticMessagesEnabled);    
-          }
-          else{
-            SerialDiagnosticMessagesEnabled=!SerialDiagnosticMessagesEnabled;
-            Message("switched","/diagnostics/preferences/serialdiagnostics",true); 
-          }
-        }
-        if (ConsoleCommand[0]=="mqttdiag"){
-          //toggle MQTTDiag
-          if (ConsoleCommand[1]== "persistent"){
-            preferences.putBool("MQTTDiagnostic",MQTTDiagnosticMessagesEnabled);
-            Message("set","/diagnostics/preferences/MQTTdiagnostics/persistent",true);                      
-          }
-          else{
-            MQTTDiagnosticMessagesEnabled=!MQTTDiagnosticMessagesEnabled;
-            Message("switched","/diagnostics/preferences/MQTTdiagnostics",true); 
-          }
-          
-        }
-        if (ConsoleCommand[0]=="wifisettings"){
-          if (ConsoleCommand[1]=="clear"){
-            Message("Clearing WiFi settings, restarting. Note: you need to reconnect","/diagnostics/preferences/MQTTdiagnostics",true); 
-            WiFiManagerClear();            
-            restart_device();
-          }
-        }        
-        if (ConsoleCommand[0]=="preferences"){
-          //preferences
-          if (ConsoleCommand[1]== "clear"){
-            preferences.clear();
-            Serial.println ("preferences cleared");            
-          }
-        }
-        if (ConsoleCommand[0]=="factory"){
-          //factory reset
-          if (ConsoleCommand[1]== "reset"){
-            Message("Factory Reset, restarting. Note: you need to reconnect","/diagnostics/preferences/MQTTdiagnostics",true); 
-            preferences.clear();
-            WiFiManagerClear();            
-            restart_device();                     
-          }
-        }              
-        if (ConsoleCommand[0]=="restart"){
-          //restart
-          Message("restarting","/console/"); 
-          restart_device();
-        }
-        else if (ConsoleCommand[0]=="ip"){
-          //get ip
-          Message(IpAddress2String(WiFi.localIP()),"/console/"); 
-        }
-        else if (ConsoleCommand[0]=="firmware"){
-          //firmware
-          if (ConsoleCommand[1]== "version"){
-            Message(FirmwareVersion,"/console/"); 
-          }
-          if (ConsoleCommand[1]== "update"){
-            Message("Updating Firmware to: "+ConsoleCommand[2],"/console/"); 
-            FirmwareFileUpdate(ConsoleCommand[2]);
-            Message("Firmware update complete, restarting ..."+ConsoleCommand[2],"/console/"); 
-            delay(1000);
-            restart_device();
-          }
-          if (ConsoleCommand[1]== "rollback"){
-            Message("Restoring firmware to previous version ...","/console/firmware"); 
-            FirmwareFileUpdate(FirmwareRollBackUrl);
-            Message("Firmware update complete, restarting ..."+ConsoleCommand[2],"/console/");
-            delay(1000);
-            restart_device();
-          }
-        }
-        else if (ConsoleCommand[0]=="millis"){
-        //millis
-          Message(String(millis(),DEC),"/console/"); 
-        }       
-      }
-      if(UserLoggedInStatus[0]||UserLoggedInStatus[1]){      
-      //either user logged in
-        if (ConsoleCommand[0]=="user"){
-          if (ConsoleCommand[1]=="logout"){
-            UserLogout();
-          }  
-        }
-      }      
-      else{
-      //anonymous user
-        if (ConsoleCommand[0]=="hello"){
-          Message("world","/console/"); 
-        }
-        else if (ConsoleCommand[0]=="user"){
-          UserLogin(ConsoleCommand[1], ConsoleCommand[2]);
-        }
-        else {
-        }
-      }
-    }
+
 /* [Sensors]: --------------------------------------------------------------------------------------------- */
    // place holder
 /* [Actuators]: ------------------------------------------------------------------------------------------- */
@@ -796,7 +666,143 @@
       JSONEventsUpdate();
     }    
     void JSONLoop(){
-    }     
+    }
+/* [Console Functions]: ----------------------------------------------------------------------------------- */      
+  /* [C: Console Evaluate]: ------------------------------------------------------------------------------- */     
+    String ConsoleCommand[6];
+    void SplitCommand(String text,String separator=" "){
+    //break up the instruction into max 6 parameters
+      text.replace("\n","");
+      int length=text.length();
+      int ConsoleCommands=0;
+      ConsoleCommand[0]="";
+      String test="";
+      for (int i = 0; i < length; i++) {
+        test=text.substring(i,i+1);
+        if (test==separator){
+          ConsoleCommands++;
+          ConsoleCommand[ConsoleCommands]="";
+        }
+        else {
+          ConsoleCommand[ConsoleCommands]=ConsoleCommand[ConsoleCommands]+test;
+        }
+      }
+    }
+    void ConsoleEvaluate(String message){
+      SplitCommand(message);
+      Serial.println("hello");
+      if(message!="message received ..."){
+        //clear old commands from console, important for public facing MQTT        
+        Message("message received ...","/console");
+      }
+      Message("console evaluate commencing","/console/",true);
+      if(UserLoggedInStatus[0]){      
+        //default user
+        Serial.println("user 0 ...");
+      }
+      else if(UserLoggedInStatus[1]){      
+        //admin user
+        if (ConsoleCommand[0]=="serialdiag"){
+          //toggle SerialDiag
+          if (ConsoleCommand[1]== "persistent"){
+            preferences.putBool("SerialDiagnostic",SerialDiagnosticMessagesEnabled);
+            Serial.print ("set Serial Diagnostics Settings to persistent: ");    
+            Serial.println (SerialDiagnosticMessagesEnabled);    
+          }
+          else{
+            SerialDiagnosticMessagesEnabled=!SerialDiagnosticMessagesEnabled;
+            Message("switched","/diagnostics/preferences/serialdiagnostics",true); 
+          }
+        }
+        if (ConsoleCommand[0]=="mqttdiag"){
+          //toggle MQTTDiag
+          if (ConsoleCommand[1]== "persistent"){
+            preferences.putBool("MQTTDiagnostic",MQTTDiagnosticMessagesEnabled);
+            Message("set","/diagnostics/preferences/MQTTdiagnostics/persistent",true);                      
+          }
+          else{
+            MQTTDiagnosticMessagesEnabled=!MQTTDiagnosticMessagesEnabled;
+            Message("switched","/diagnostics/preferences/MQTTdiagnostics",true); 
+          }
+          
+        }
+        if (ConsoleCommand[0]=="wifisettings"){
+          if (ConsoleCommand[1]=="clear"){
+            Message("Clearing WiFi settings, restarting. Note: you need to reconnect","/diagnostics/preferences/MQTTdiagnostics",true); 
+            WiFiManagerClear();            
+            restart_device();
+          }
+        }        
+        if (ConsoleCommand[0]=="preferences"){
+          //preferences
+          if (ConsoleCommand[1]== "clear"){
+            preferences.clear();
+            Serial.println ("preferences cleared");            
+          }
+        }
+        if (ConsoleCommand[0]=="factory"){
+          //factory reset
+          if (ConsoleCommand[1]== "reset"){
+            Message("Factory Reset, restarting. Note: you need to reconnect","/diagnostics/preferences/MQTTdiagnostics",true); 
+            preferences.clear();
+            WiFiManagerClear();            
+            restart_device();                     
+          }
+        }              
+        if (ConsoleCommand[0]=="restart"){
+          //restart
+          Message("restarting","/console/"); 
+          restart_device();
+        }
+        else if (ConsoleCommand[0]=="ip"){
+          //get ip
+          Message(IpAddress2String(WiFi.localIP()),"/console/"); 
+        }
+        else if (ConsoleCommand[0]=="firmware"){
+          //firmware
+          if (ConsoleCommand[1]== "version"){
+            Message(FirmwareVersion,"/console/"); 
+          }
+          if (ConsoleCommand[1]== "update"){
+            Message("Updating Firmware to: "+ConsoleCommand[2],"/console/"); 
+            FirmwareFileUpdate(ConsoleCommand[2]);
+            Message("Firmware update complete, restarting ..."+ConsoleCommand[2],"/console/"); 
+            delay(1000);
+            restart_device();
+          }
+          if (ConsoleCommand[1]== "rollback"){
+            Message("Restoring firmware to previous version ...","/console/firmware"); 
+            FirmwareFileUpdate(FirmwareRollBackUrl);
+            Message("Firmware update complete, restarting ..."+ConsoleCommand[2],"/console/");
+            delay(1000);
+            restart_device();
+          }
+        }
+        else if (ConsoleCommand[0]=="millis"){
+        //millis
+          Message(String(millis(),DEC),"/console/"); 
+        }       
+      }
+      if(UserLoggedInStatus[0]||UserLoggedInStatus[1]){      
+      //either user logged in
+        if (ConsoleCommand[0]=="user"){
+          if (ConsoleCommand[1]=="logout"){
+            UserLogout();
+          }  
+        }
+      }      
+      else{
+      //anonymous user
+        if (ConsoleCommand[0]=="hello"){
+          Message("world","/console/"); 
+        }
+        else if (ConsoleCommand[0]=="user"){
+          UserLogin(ConsoleCommand[1], ConsoleCommand[2]);
+        }
+        else {
+        }
+      }
+    }   
 /* [Default Arduino Functions]: --------------------------------------------------------------------------- */
   /* [DAF: Arduino Setup] : ------------------------------------------------------------------------------- */
     void setup(){
