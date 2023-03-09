@@ -46,7 +46,7 @@
             hello
           2.3.2 Admin Commands: 
             2.3.2.1 User Login:
-              user [user] [password] 
+              user login [user] [password] 
               -> default admin: is admin admin
               -> default user: is user user
             2.3.2.2 User Logout
@@ -61,26 +61,29 @@
               firware update [path to firmware binary]
             2.3.2.7 Firmware Rollback
               firmware rollback           
-            2.3.3.8 Reading preferences
-              preferences read startcounter
-              preferences read serialdiagnostics
-              preferences read mqttdiagnostics
-              preferences read mqtthost
-              preferences read mqttport
-              preferences read mqttuser
-              preferences read mqttpass
-              preferences read mqttpath
-              preferences read user1name
-              preferences read user2name
-              preferences read user1pass
-              preferences read user2pass
-              preferences read all
+            2.3.3.8 preferences
+              NOTE: - serialdiag and/or mqttdiag has to be enabled to see feedback.
+                    - sensitive / potentionally compromising information may be sent via MQTT and posted on a topic for others to see
+                Read
+                  preferences read startcounter
+                  preferences read serialdiagnostics
+                  preferences read mqttdiagnostics
+                  preferences read mqtthost
+                  preferences read mqttport
+                  preferences read mqttuser
+                  preferences read mqttpass
+                  preferences read mqttpath
+                  preferences read adminuser
+                  preferences read adminpassword
+                  preferences read all
             2.3.3.9 Enable Diagnostic Messages via MQTT
               mqttdiag
               mqttdiag set
               mqttdiag set persistent
             2.3.3.10 Clear WiFi Settings
               wifisettings cear
+            2.3.3.11 Number of starts of device
+              starts
     */
   /*   [Changelog]: --------------------------------------------------------------------------------------- */
     /*
@@ -220,8 +223,8 @@
     String MQTTControllerRootPath           = "EasyIoT/";
     String MQTTusername                     = "EasyIoT";
     String MQTTpassword                     = "EasyIoT";
-    String UserName[2]                     = {"user","admin"};    //only admin working at this stage
-    String UserPassword[2]                 = {"user","admin"};   //only admin working at this stage
+    String AdminUserName                    = "admin";
+    String AdminPassword                    = "adminpass";
   /* [V: Device / Server etc. Unique]: -------------------------------------------------------------------- */
     #define ProductName                      "EasyIoT"   
     #define UIDProductName                   "EasyIoT-"    
@@ -231,8 +234,7 @@
     #define timezone_offset                  0
   /* [V: Authentication and Security]: -------------------------------------------------------------------- */
     String UserType[2]                     = {"user","admin"};
-    bool UserLoggedInStatus[2]             = {false,false};
-    int UserClasses                        = 1; //including 0
+    bool AdminUserLoggedIn                 = false;
   /* [V: Environment and other]: -------------------------------------------------------------------------- */
     bool InternetConnected                  = false;
     String UID                              = UIDProductName +getESP32UID();   //only works with ESP32
@@ -389,25 +391,18 @@
 /* [User Functions]: -------------------------------------------------------------------------------------- */
   /* [U: User Login]: ------------------------------------------------------------------------------------- */
     void UserLogin(String user, String password){
-      Message("checking credentials","/console/",true);       
-      for (int i = 0; i <= UserClasses; i++) {
-        if(user==UserName[i]&&password==UserPassword[i]){
-          UserLoggedInStatus[i]=true;
-          if (i==0||i==1){
-            Message("login successful","/console/");  
-          }
-        }
-        else{
-          Message("login failed","/console/");   
-        }
+      Message("checking credentials","/console/",true); 
+      if (user == AdminUserName && password == AdminPassword){
+          AdminUserLoggedIn = true;
+          Message("login successful","/console/");  
+      }
+      else{
+        Message("login failed","/console/");   
       }
     }
   /* [U: User Logout]: ------------------------------------------------------------------------------------ */
     void UserLogout(){
-      for (int i = 0; i <= UserClasses; i++) {
-        UserLoggedInStatus[i]=false;
-        Message("","/console/"); 
-      }
+      AdminUserLoggedIn=false;
     }
 /* [Sensors]: --------------------------------------------------------------------------------------------- */
   /* [S: Reset Button]: ----------------------------------------------------------------------------------- */
@@ -433,6 +428,9 @@
         restart_device();
       }
     }
+    void SensorLoop(){
+      ResetButtonLoop();
+    }
 /* [Actuators]: ------------------------------------------------------------------------------------------- */
   /* [A: Heart Beat LED]: --------------------------------------------------------------------------------- */
     void HeartBeatSetup(){
@@ -444,6 +442,10 @@
       bool LEDState =(digitalRead(HeartBeatLEDPin));
       digitalWrite(HeartBeatLEDPin,!LEDState);      
     }
+    void ActuatorLoop(){
+      HeartBeatLoop();      
+    }
+    
 /* [Timers]: ---------------------------------------------------------------------------------------------- */
   /* [T: Interrupt Timers]: ------------------------------------------------------------------------------- */
     #define _TimerINTERRUPT_LOGLEVEL_ 4 // To be included only in main(), .ino with setup() to avoid `Multiple Definitions` Linker Error you can't use Serial.print/println in ISR or crash.
@@ -487,8 +489,8 @@
       }
       void Timer0Payload(){
         Message ("started ...", "/diagnostics/timerinterrupt/timer0/payload", true);
-          HeartBeatLoop();
-          ResetButtonLoop();          
+          ActuatorLoop();
+          SensorLoop();          
           SerialMonitorLoop();
           MessagingLoop();
           WifiManagerLoop();
@@ -614,204 +616,184 @@
     String PreferencesTest="";
     void PreferencesRead(String instruction="none"){
       preferences.begin("preferences", false);
-      if (instruction=="startcounter"||instruction=="all"){            
+      if (instruction=="startcounter"||instruction=="all"){
         //Start Counter
         TotalStarts = preferences.getLong("TotalStarts", 0);
-        Message (String(TotalStarts), "/diagnostics/preferences/startcounter",false);      
+        Message ("success", "/console",false);        
+        Message (String(TotalStarts), "/preferences/startcounter",true);      
       }
-      if (instruction=="serialdiagnostics"||instruction=="all"){            
+      if (instruction=="serialdiagnostics"||instruction=="all"){
         //SerialDiagnostics
-        SerialDiagnosticMessagesEnabled = preferences.getBool("SerialDiagnostic",false);
-        Message (String(SerialDiagnosticMessagesEnabled), "/diagnostics/preferences/serialdiagnostics",false);        
+        //SerialDiagnosticMessagesEnabled = preferences.getBool("SerialDiagnostic",false);
+        //Message (String(SerialDiagnosticMessagesEnabled), "/diagnostics/preferences/serialdiagnostics",false);  
       }
-      if (instruction=="mqttdiagnostics"||instruction=="all"){            
+      if (instruction=="mqttdiagnostics"||instruction=="all"){
         //MQTTDiagnostics
         MQTTDiagnosticMessagesEnabled = preferences.getBool("MQTTDiagnostic",false);
-        Message (String(MQTTDiagnosticMessagesEnabled), "/diagnostics/preferences/mqttdiagnostics",false);
+        Message (String(MQTTDiagnosticMessagesEnabled), "/preferences/mqttdiagnostics",false);
       }
-      if (instruction=="mqtthost"||instruction=="all"){                  
+      if (instruction=="mqtthost"||instruction=="all"){
         //MQTT host
         MQTThost=preferences.getString("MQTThost",MQTThost);
-        Message (MQTThost, "/diagnostics/preferences/mqtthost",false);
+        Message (MQTThost, "/preferences/mqtthost",false);
       }
       if (instruction=="mqttport"||instruction=="all"){
         //MQTT port
         MQTTport=preferences.getInt("MQTTport",MQTTport);
-        Message (String(MQTTport), "/diagnostics/preferences/mqttport",false);
+        Message (String(MQTTport), "/preferences/mqttport",false);
       }
       if (instruction=="mqttuser"||instruction=="all"){
         //MQTT user
         MQTTusername=preferences.getString("MQTTusername",MQTTusername);
-        Message (MQTTusername, "/diagnostics/preferences/mqttuser",false);
+        Message (MQTTusername, "/preferences/mqttuser",false);
       }
       if (instruction=="mqttpass"||instruction=="all"){
         //MQTT password
         MQTTpassword=preferences.getString("MQTTpassword",MQTTpassword);
-        Message ("******", "/diagnostics/preferences/mqttpass",false);        
+        Message ("******", "/preferences/mqttpass",false);        
       }
-      if (instruction=="mqttpath"||instruction=="all"){                    
+      if (instruction=="mqttpath"||instruction=="all"){
         //MQTT root path
         MQTTControllerRootPath=preferences.getString("MQTTControllerRootPath",MQTTControllerRootPath);    
-        Message (MQTTControllerRootPath, "/diagnostics/preferences/mqttpath",false);        
+        Message (MQTTControllerRootPath, "/preferences/mqttpath",false);        
       }
-      if (instruction=="user1name"||instruction=="all"){
-        //user 1 name
-        UserName[1] = preferences.getString("User1Name",UserName[1]);
-        Message (UserName[1], "/diagnostics/preferences/user1name",false);      
+      if (instruction=="adminusername"||instruction=="all"){
+        //admin user name
+        AdminUserName = preferences.getString("AdminUserName",AdminUserName);
+        Message ("success", "/console",false);        
+        Message (AdminUserName, "/preferences/adminusername",true);      
       }
-      if (instruction=="user2name"||instruction=="all"){
-        //user 2 name
-        UserName[2] = preferences.getString("User2Name",UserName[2]);
-        Message (UserName[2], "/diagnostics/preferences/user2name",false);
-      }
-      if (instruction=="user1pass"||instruction=="all"){
-        //user 1 password
-        UserPassword[1] = preferences.getString("User1Password",UserPassword[1]);
-        Message ("******", "/diagnostics/preferences/user1pass",false);
-      }
-      if (instruction=="user2pass"||instruction=="all"){
-        //user 2 password        
-        UserPassword[2] = preferences.getString("User2Password",UserPassword[2]);
-        Message ("******", "/diagnostics/preferences/user2pass",false);        
+      if (instruction=="adminpassword"||instruction=="all"){
+        //admin password
+        AdminPassword = preferences.getString("AdminPassword",AdminPassword);
+        Message ("success", "/console",false);        
+        Message (AdminPassword, "/preferences/adminpassword",true);
       }
       preferences.end();    
     }     
     void PreferencesWrite(String instruction="none"){
       preferences.begin("preferences", false);
-      if (instruction=="startcounter"||instruction=="all"){            
+      if (instruction=="startcounter"||instruction=="all"){
         //Start Counter
-        preferences.putLong("TotalStarts",TotalStarts);      
-        Message ("written", "/diagnostics/preferences/startcounter",false);
+        preferences.putLong("TotalStarts",TotalStarts);   
+        Message ("success", "/console",false);   
+        Message ("written", "/preferences/startcounter",true);
       }
-      if (instruction=="serialdiagnostics"||instruction=="all"){            
+      if (instruction=="serialdiagnostics"||instruction=="all"){
         //SerialDiagnostics
         preferences.putBool("SerialDiagnostic",SerialDiagnosticMessagesEnabled);
-        Message ("written", "/diagnostics/preferences/serialdiagnostics",false);        
+        Message ("written", "/preferences/serialdiagnostics",false);        
       }
-      if (instruction=="mqttdiagnostics"||instruction=="all"){            
+      if (instruction=="mqttdiagnostics"||instruction=="all"){
         //MQTTDiagnostics
         preferences.putBool("MQTTDiagnostic",MQTTDiagnosticMessagesEnabled);
-        Message ("written", "/diagnostics/preferences/mqttdiagnostics",false);
+        Message ("written", "/preferences/mqttdiagnostics",false);
       }
-      if (instruction=="mqtthost"||instruction=="all"){                  
+      if (instruction=="mqtthost"||instruction=="all"){
         //MQTT host
         preferences.putString("MQTThost",MQTThost);
-        Message ("written", "/diagnostics/preferences/mqtthost",false);
+        Message ("written", "/preferences/mqtthost",false);
       }
       if (instruction=="mqttport"||instruction=="all"){
         //MQTT port
         preferences.putInt("MQTTport",MQTTport);
-        Message ("written", "/diagnostics/preferences/mqttport",false);
+        Message ("written", "/preferences/mqttport",false);
       }
       if (instruction=="mqttuser"||instruction=="all"){
         //MQTT user
         preferences.putString("MQTTusername",MQTTusername);
-        Message ("written", "/diagnostics/preferences/mqttuser",false);
+        Message ("written", "/preferences/mqttuser",false);
       }
       if (instruction=="mqttpass"||instruction=="all"){
         //MQTT password
         preferences.putString("MQTTpassword",MQTTpassword);
-        Message ("written", "/diagnostics/preferences/mqttpass",false);
+        Message ("written", "/preferences/mqttpass",false);
       }
-      if (instruction=="mqttpath"||instruction=="all"){                    
+      if (instruction=="mqttpath"||instruction=="all"){
         //MQTT root path
         preferences.putString("MQTTControllerRootPath",MQTTControllerRootPath);
-        Message ("written", "/diagnostics/preferences/mqttpath",false);
+        Message ("written", "/preferences/mqttpath",false);
       }
-      if (instruction=="user1name"||instruction=="all"){
-        //user 1 name
-        preferences.putString("User1Name",UserName[1]);
-        Message ("written", "/diagnostics/preferences/user1name",false);
+      if (instruction=="adminusername"||instruction=="all"){
+        //admin user name
+        preferences.putString("AdminUserName",AdminUserName);
+        Message ("success", "/console",false);
+        Message ("written", "/preferences/adminusername",true);
       }
-      if (instruction=="user2name"||instruction=="all"){
-        //user 2 name
-        preferences.putString("User2Name",UserName[2]);
-        Message ("written", "/diagnostics/preferences/user2name",false);
-      }
-      if (instruction=="user1pass"||instruction=="all"){
-        //user 1 password
-        preferences.putString("User1Password",UserPassword[1]);
-        Message ("written", "/diagnostics/preferences/user1pass",false);
-      }
-      if (instruction=="user2pass"||instruction=="all"){
-        //user 2 password        
-        preferences.putString("User2Password",UserPassword[2]);
-        Message ("written", "/diagnostics/preferences/user2pass",false);
+      if (instruction=="adminpassword"||instruction=="all"){
+        //admin password
+        preferences.putString("AdminPassword",AdminPassword);
+        Message ("success", "/console",false);
+        Message ("written", "/preferences/adminpassword",true);
       }
       preferences.end();
     }
     void PreferencesClear(String instruction="none"){
       preferences.begin("preferences", false);
-      if (instruction=="startcounter"||instruction=="all"){            
+      if (instruction=="startcounter"||instruction=="all"){
         //Start Counter
-        preferences.remove("TotalStarts");      
-        Message ("cleared", "/diagnostics/preferences/startcounter",false);
+        preferences.remove("TotalStarts");   
+        Message ("success", "/console",false);  
+        Message ("cleared", "/preferences/startcounter",true);
       }
-      if (instruction=="serialdiagnostics"||instruction=="all"){            
+      if (instruction=="serialdiagnostics"||instruction=="all"){
         //SerialDiagnostics
         preferences.remove("SerialDiagnostic");
-        Message ("cleared", "/diagnostics/preferences/serialdiagnostics",false);        
+        Message ("cleared", "/preferences/serialdiagnostics",false);        
       }
-      if (instruction=="mqttdiagnostics"||instruction=="all"){            
+      if (instruction=="mqttdiagnostics"||instruction=="all"){
         //MQTTDiagnostics
         preferences.remove("MQTTDiagnostic");
-        Message ("cleared", "/diagnostics/preferences/mqttdiagnostics",false);
+        Message ("cleared", "/preferences/mqttdiagnostics",false);
       }
-      if (instruction=="mqtthost"||instruction=="all"){                  
+      if (instruction=="mqtthost"||instruction=="all"){
         //MQTT host
         preferences.remove("MQTThost");
-        Message ("cleared", "/diagnostics/preferences/mqtthost",false);
+        Message ("cleared", "/preferences/mqtthost",false);
       }
       if (instruction=="mqttport"||instruction=="all"){
         //MQTT port
         preferences.remove("MQTTport");
-        Message ("cleared", "/diagnostics/preferences/mqttport",false);
+        Message ("cleared", "/preferences/mqttport",false);
       }
       if (instruction=="mqttuser"||instruction=="all"){
         //MQTT user
         preferences.remove("MQTTusername");
-        Message ("cleared", "/diagnostics/preferences/mqttuser",false);
+        Message ("cleared", "/preferences/mqttuser",false);
       }
       if (instruction=="mqttpass"||instruction=="all"){
         //MQTT password
         preferences.remove("MQTTpassword");
-        Message ("cleared", "/diagnostics/preferences/mqttpass",false);
+        Message ("cleared", "/preferences/mqttpass",false);
       }
-      if (instruction=="mqttpath"||instruction=="all"){                    
+      if (instruction=="mqttpath"||instruction=="all"){
         //MQTT root path
         preferences.remove("MQTTControllerRootPath");
-        Message ("cleared", "/diagnostics/preferences/mqttpath",false);
+        Message ("cleared", "/preferences/mqttpath",false);
       }
-      if (instruction=="user1name"||instruction=="all"){
-        //user 1 name
-        preferences.remove("User1Name");
-        Message ("cleared", "/diagnostics/preferences/user1name",false);
+      if (instruction=="adminusername"||instruction=="all"){
+        //admin user name
+        preferences.remove("AdminUserName");
+        Message ("success", "/console",false);
+        Message ("cleared", "/preferences/adminusername",true);
       }
-      if (instruction=="user2name"||instruction=="all"){
-        //user 2 name
-        preferences.remove("User2Name");
-        Message ("cleared", "/diagnostics/preferences/user2name",false);
-      }
-      if (instruction=="user1pass"||instruction=="all"){
-        //user 1 password
-        preferences.remove("User1Password");
-        Message ("cleared", "/diagnostics/preferences/user1pass",false);
-      }
-      if (instruction=="user2pass"||instruction=="all"){
-        //user 2 password        
-        preferences.remove("User2Password");
-        Message ("cleared", "/diagnostics/preferences/user2pass",false);
+      if (instruction=="adminpassword"||instruction=="all"){
+        //admin password
+        preferences.remove("AdminPassword");
+        Message ("success", "/console",false);    
+        Message ("cleared", "/preferences/adminpassword",true);
       }
       preferences.end();
     }
     void PreferencesSet(String instruction="none", String value=""){
       preferences.begin("preferences", false);
-      if (instruction=="startcounter"){            
+      if (instruction=="startcounter"){
         //Start Counter
         TotalStarts = atol(value.c_str());
-        Message (String(TotalStarts), "/diagnostics/preferences/startcounter",false);
+        Message ("success", "/console",false);
+        Message (String(TotalStarts), "/preferences/startcounter",true);
       }
-      if (instruction=="serialdiagnostics"){            
+      if (instruction=="serialdiagnostics"){
         //SerialDiagnostics
         if (value=="1"||value=="true"){
           SerialDiagnosticMessagesEnabled=true;
@@ -819,9 +801,10 @@
         else{
           SerialDiagnosticMessagesEnabled=false;
         }
-        Message (String(SerialDiagnosticMessagesEnabled), "/diagnostics/preferences/serialdiagnostics",false);        
+        Message ("success", "/console",false);        
+        Message (String(SerialDiagnosticMessagesEnabled), "/preferences/serialdiagnostics",true);
       }
-      if (instruction=="mqttdiagnostics"){            
+      if (instruction=="mqttdiagnostics"){
         //MQTTDiagnostics
         if (value=="1"||value=="true"){
           MQTTDiagnosticMessagesEnabled=true;
@@ -829,58 +812,48 @@
         else{
           MQTTDiagnosticMessagesEnabled=false;
         }
-        Message (String(MQTTDiagnosticMessagesEnabled), "/diagnostics/preferences/mqttdiagnostics",false);        
+        Message ("success", "/console",false);        
+        Message (String(MQTTDiagnosticMessagesEnabled), "/preferences/mqttdiagnostics",true);
       }
-      if (instruction=="mqtthost"){                  
+      if (instruction=="mqtthost"){
         //MQTT host
         MQTThost=value;
-        Message (MQTThost, "/diagnostics/preferences/mqtthost",false);
+        Message (MQTThost, "/preferences/mqtthost",false);
       }
       if (instruction=="mqttport"){
         //MQTT port
         MQTTport=atol(value.c_str());
-        Message (String(MQTTport), "/diagnostics/preferences/mqttport",false);
+        Message (String(MQTTport), "/preferences/mqttport",false);
       }
       if (instruction=="mqttuser"){
         //MQTT user
         MQTTusername=value;
-        Message (MQTTusername, "/diagnostics/preferences/mqttuser",false);
+        Message (MQTTusername, "/preferences/mqttuser",false);
       }
       if (instruction=="mqttpass"){
         //MQTT password
         MQTTpassword=value;
-        Message (MQTTpassword, "/diagnostics/preferences/mqttpass",false);
+        Message (MQTTpassword, "/preferences/mqttpass",false);
       }
-      if (instruction=="mqttpath"){                    
+      if (instruction=="mqttpath"){
         //MQTT root path
         preferences.remove("MQTTControllerRootPath");
-        Message ("cleared", "/diagnostics/preferences/mqttpath",false);
+        Message ("cleared", "/preferences/mqttpath",false);
       }
-      if (instruction=="user1name"){
-        //user 1 name
-        preferences.remove("User1Name");
-        Message ("cleared", "/diagnostics/preferences/user1name",false);
+      if (instruction=="adminusername"){
+        //admin user name
+        AdminUserName=value;
+        Message ("success", "/console",false);        
+        Message ("set", "/preferences/adminusername",true);
       }
-      if (instruction=="user2name"){
-        //user 2 name
-        preferences.remove("User2Name");
-        Message ("cleared", "/diagnostics/preferences/user2name",false);
-      }
-      if (instruction=="user1pass"){
-        //user 1 password
-        preferences.remove("User1Password");
-        Message ("cleared", "/diagnostics/preferences/user1pass",false);
-      }
-      if (instruction=="user2pass"){
-        //user 2 password        
-        preferences.remove("User2Password");
-        Message ("cleared", "/diagnostics/preferences/user2pass",false);
+      if (instruction=="adminpassword"){
+        //admin password
+        AdminPassword=value;
+        Message ("success", "/console",false);
+        Message ("set", "/preferences/adminpassword",true);
       }
       preferences.end();
     }
-    
-
-  
     void PreferencesSetup(){
       preferences.begin("preferences", false);
       //Start Counter
@@ -894,7 +867,7 @@
   /* [C: Console Evaluate]: ------------------------------------------------------------------------------- */     
     String ConsoleCommand[6];
     void SplitCommand(String text,String separator=" "){
-    //break up the instruction into max 6 parameters
+      //break up the instruction into max 6 parameters
       text.replace("\n","");
       int length=text.length();
       int ConsoleCommands=0;
@@ -913,28 +886,47 @@
     }
     void ConsoleEvaluate(String message){
       SplitCommand(message);
-      Serial.println("hello");
       if(message!="message received ..."){
         //clear old commands from console, important for public facing MQTT        
         Message("message received ...","/console");
       }
-      Message("console evaluate commencing","/console/",true);
-      if(UserLoggedInStatus[0]){      
-        //default user
-        Serial.println("user 0 ...");
+      if(!AdminUserLoggedIn){      
+        //no user logged in
+        if (ConsoleCommand[0]=="hello"){
+          Message("world","/console/"); 
+        }
+        if (ConsoleCommand[0]=="user"){
+          if (ConsoleCommand[1]=="login"){
+            UserLogin(ConsoleCommand[2], ConsoleCommand[3]);
+          }
+        }
       }
-      else if(UserLoggedInStatus[1]){      
-        //admin user
+      else {      
+        //admin user logged in
+        if (ConsoleCommand[0]=="user"){
+          if (ConsoleCommand[1]=="logout"){
+            UserLogout();
+            Message("logged out","/console/");
+          }  
+        }
+        if (ConsoleCommand[0]=="millis"){
+          //millis
+          Message(String(millis(),DEC),"/console/"); 
+        }        
+        if (ConsoleCommand[0]=="ip"){
+          //get ip
+          Message(IpAddress2String(WiFi.localIP()),"/console/"); 
+        }
+        if (ConsoleCommand[0]=="starts"){
+          //number of starts of device
+          Message(String(TotalStarts),"/console/");  
+        }
         if (ConsoleCommand[0]=="restart"){
           //restart
           Message("restarting","/console/"); 
           restart_device();
         }
-        else if (ConsoleCommand[0]=="ip"){
-          //get ip
-          Message(IpAddress2String(WiFi.localIP()),"/console/"); 
-        }
-        else if (ConsoleCommand[0]=="firmware"){
+        if (ConsoleCommand[0]=="firmware"){
           //firmware
           if (ConsoleCommand[1]== "version"){
             Message(FirmwareVersion,"/console/"); 
@@ -954,11 +946,7 @@
             restart_device();
           }
         }
-        else if (ConsoleCommand[0]=="millis"){
-          //millis
-          Message(String(millis(),DEC),"/console/"); 
-        }
-        else if (ConsoleCommand[0]=="preferences"){
+        if (ConsoleCommand[0]=="preferences"){
           if (ConsoleCommand[1]=="read"){
             PreferencesRead(ConsoleCommand[2]);
           }
@@ -971,34 +959,6 @@
           if (ConsoleCommand[1]=="set"){
             PreferencesSet(ConsoleCommand[2],ConsoleCommand[3]);
           }
-        }   
-      }
-      if(UserLoggedInStatus[0]||UserLoggedInStatus[1]){      
-        //either user logged in
-        if (ConsoleCommand[0]=="user"){
-          if (ConsoleCommand[1]=="logout"){
-            UserLogout();
-          }  
-        }
-      }      
-      else{
-        //anonymous user
-        if (ConsoleCommand[0]=="hello"){
-          Message("world","/console/"); 
-        }
-        else if (ConsoleCommand[0]=="user"){
-          UserLogin(ConsoleCommand[1], ConsoleCommand[2]);
-        }
-        if (ConsoleCommand[0]=="read"){
-          PreferencesRead();
-        }
-        if (ConsoleCommand[0]=="write"){
-          PreferencesWrite();
-        }
-        if (ConsoleCommand[0]=="clear"){
-          PreferencesClear();
-        }
-        else {
         }
       }
     }   
