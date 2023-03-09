@@ -97,6 +97,8 @@
       2023.03.08
         - added preferences functionality
         - broke a lot
+      2023.03.09
+        - added factory reset functionality
     */
   /*   [To Do]: ------------------------------------------------------------------------------------------- */
       /*
@@ -104,7 +106,6 @@
       2. remote admin functionality
       3. nice to have: change variables to  PEP 8, while not being the standard for C++, this is easier to read as is the standard for Python
     */
-  
 /* [Includes / Libraries]: -------------------------------------------------------------------------------- */
   /* [Operating System Level]: ---------------------------------------------------------------------------- */
     #include "Arduino.h"              
@@ -122,7 +123,8 @@
     #include "ESP32TimerInterrupt.h"  
     #include "SPIFFS.h"               
     #include <FS.h>                   
-    #include <Preferences.h>          
+    #include <Preferences.h>
+      Preferences preferences;      
 /* [Generic Functions]: ----------------------------------------------------------------------------------- */
   /* [GF: convert a MAC Address in string format to an integer]: ------------------------------------------ */
     String M2ulli (String MacString){
@@ -242,6 +244,7 @@
     float Timer1Interval                    = 60;     //every in seconds:MQTT status update
   /* [V: Pin Assignments]: -------------------------------------------------------------------------------- */
     #define HeartBeatLEDPin                   32  //Specific to M5Stack Stamp Pico
+    #define ResetButtonPin                    39  //Specific to M5Stack Stamp Pico, note that it default high 
   /* [V: MQTT]: --------------------------------------------------------------------------------------------*/
     String MQTTConsole                      = MQTTControllerRootPath+UID+"/console";
     String MQTTwillTopic                    = MQTTControllerRootPath+UID+"/online"; 
@@ -305,7 +308,6 @@
     }
     void WiFiManagerClear(){
       wm.resetSettings();
-      restart_device();
     }    
   /* [COMSF: MQTT]: --------------------------------------------------------------------------------------- */
     WiFiClient MQTTClient;
@@ -408,7 +410,29 @@
       }
     }
 /* [Sensors]: --------------------------------------------------------------------------------------------- */
-   // place holder
+  /* [S: Reset Button]: ----------------------------------------------------------------------------------- */
+    int ResetButtonCounter = 0;
+    void ResetButtonSetup(){
+      pinMode(ResetButtonPin, INPUT);
+    }
+    void ResetButtonLoop(){
+      if (digitalRead(ResetButtonPin)==LOW){
+        ResetButtonCounter++;                
+      }
+      else{
+        ResetButtonCounter=0;
+      }
+      if (ResetButtonCounter>=3){
+        Message("to default settings, including WiFi","/status/reset",false);
+        WiFiManagerClear();
+        delay(200);
+        preferences.begin("preferences", false);
+        preferences.clear();
+        preferences.end();
+        delay(200);
+        restart_device();
+      }
+    }
 /* [Actuators]: ------------------------------------------------------------------------------------------- */
   /* [A: Heart Beat LED]: --------------------------------------------------------------------------------- */
     void HeartBeatSetup(){
@@ -464,6 +488,7 @@
       void Timer0Payload(){
         Message ("started ...", "/diagnostics/timerinterrupt/timer0/payload", true);
           HeartBeatLoop();
+          ResetButtonLoop();          
           SerialMonitorLoop();
           MessagingLoop();
           WifiManagerLoop();
@@ -520,17 +545,17 @@
     }
 /* [Device Restart] : ------------------------------------------------------------------------------------- */
     void restart_device(){
-      Message("in 5","/console",true);
+      Message("in 5","/status/restart",false);digitalWrite(HeartBeatLEDPin,LOW);
       delay(1000);
-      Message("in 4","/console",true); 
+      Message("in 4","/status/restart",false);
       delay(1000);
-      Message("in 3","/console",true); 
+      Message("in 3","/status/restart",false);
       delay(1000);
-      Message("in 2","/console",true); 
+      Message("in 2","/status/restart",false);
       delay(1000);
-      Message("in 1","/console",true); 
+      Message("in 1","/status/restart",false);
       delay(1000);
-      Message("initiated","/console",true); 
+      Message("forced restart initiated","/status/restart",false);digitalWrite(HeartBeatLEDPin,HIGH);
       MQTTdisconnect();
       ESP.restart();        
     }
@@ -586,7 +611,6 @@
     void JSONLoop(){
     }
 /* [Preferences]: ----------------------------------------------------------------------------------------- */
-    Preferences preferences;
     String PreferencesTest="";
     void PreferencesRead(String instruction="none"){
       preferences.begin("preferences", false);
@@ -780,8 +804,6 @@
       }
       preferences.end();
     }
-  
-
     void PreferencesSet(String instruction="none", String value=""){
       preferences.begin("preferences", false);
       if (instruction=="startcounter"){            
@@ -856,7 +878,7 @@
       }
       preferences.end();
     }
-
+    
 
   
     void PreferencesSetup(){
@@ -991,6 +1013,7 @@
       Serial.println("running SpiffsSetup ...");SpiffsSetup();Serial.println("... SpiffsSetup complete");
       Serial.println("running TimerInterruptSetup ...");TimerInterruptSetup();Serial.println("... TimerInterruptSetup complete");
       Serial.println("running HeartBeatSetup ...");HeartBeatSetup();Serial.println("... HeartBeatSetup complete");
+      Serial.println("running ResetButtonSetup ...");ResetButtonSetup();Serial.println("... ResetButtonSetup complete");
       Serial.println("running JSONSetup ...");JSONSetup();Serial.println("... JSONSetup complete");
       Serial.println("running planned bootup delay to stabilise the system ...");while (BootDelay*1000>millis()){}Serial.println("... bootup delay complete");
       Serial.println("... startup complete");
