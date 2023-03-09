@@ -1,99 +1,111 @@
-/* [License]: --------------------------------------------------------------------------------------------- */
-  /*
-    MIT License
-
-    Copyright (c) 2021-2023 FlexTech Engineering CC & Kai Eysselein
-
-    Permission is hereby granted, free of charge, to any person obtaining a copy
-    of this software and associated documentation files (the "Software"), to deal
-    in the Software without restriction, including without limitation the rights
-    to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-    copies of the Software, and to permit persons to whom the Software is
-    furnished to do so, subject to the following conditions:
-
-    The above copyright notice and this permission notice shall be included in
-    all copies or substantial portions of the Software.
-
-    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-    OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-    THE SOFTWARE.
-  */
-/* [CAUTION !!!]: ----------------------------------------------------------------------------------------- */
-  /*
-    Always change the usernames and passwords to avoid the related risks !!!
-    This code is generic and the default settings will expose the device to various risks !!!    
-  */
-/* [Notes]: ----------------------------------------------------------------------------------------------- */
-  /*
-    1. before compiling ensure the following are installed
-      1.1 WiFiManager   			  		  https://github.com/tzapu/WiFiManager
-      1.2 MQTT						            https://github.com/knolleary/pubsubclient
-      1.3 ArduinoJSON                 https://github.com/bblanchon/ArduinoJson    
-      1.4 Timer Interrupts			      https://github.com/khoih-prog/ESP32TimerInterrupt
-      1.5 NTP time                    https://github.com/arduino-libraries/NTPClient
-      1.6 Async web server			      https://github.com/me-no-dev/ESPAsyncWebServer
-      1.7 Required for WiFi Manager	  https://github.com/me-no-dev/AsyncTCP
-      
-    2. MQTT and Console Commands (first login via the command below)
-      2.1 Console Topic on which the system is listening:
-        /console
-        2.2.1 Public Commands:
-          hello
-        2.3.2 Admin Commands: 
-          2.3.2.1 User Login:
-            user [user] [password] 
-            -> default admin: is admin admin
-            -> default user: is user user
-          2.3.2.2 User Logout
-            user logout      
-          2.3.2.3 Restart 
-            restart
-          2.3.2.4 Get IP address
-            ip
-          2.3.2.5 Get Firmware version
-            version
-          2.3.2.6 Flash Firmware
-            firware update [path to firmware binary]
-          2.3.2.7 Firmware Rollback
-            firmware rollback           
-          2.3.3.8 Enable Diagnostic Messages via Serial Console
-            serialdiag           
-            serialdiag set
-            serialdiag set persistent
-          2.3.3.9 Enable Diagnostic Messages via MQTT
-            mqttdiag
-            mqttdiag set
-            mqttdiag set persistent
-          2.3.3.10 Clear WiFi Settings
-            wifisettings cear
-  */
-/* [Changelog]: ------------------------------------------------------------------------------------------- */
-  /*
-  [00.00.00.01]
-    2023.03.07
-      - moved code from internal private repository to public
-      - changed private passwords to default passwords
-      - sanitised code
-      - added MIT license
-      - included WiFi Settings clear command in console
-      - changed login command to user [username] [password]
-      - changed logout command to user logout
-      - added factory reset option in console
-    2023.03.08
-      - added preferences functionality
-      - broke a lot
-  */
-/* [To Do]: ----------------------------------------------------------------------------------------------- */
+/* [General & Notes]: ------------------------------------------------------------------------------------- */ 
+  /*   [License]: ----------------------------------------------------------------------------------------- */
     /*
-    1. firmware update process
-    2. remote admin functionality
-    3. nice to have: change variables to  PEP 8, while not being the standard for C++, this is easier to read as is the standard for Python
-  */
-/* [Included Libraries]: ---------------------------------------------------------------------------------- */
+      MIT License
+
+      Copyright (c) 2021-2023 FlexTech Engineering CC & Kai Eysselein
+
+      Permission is hereby granted, free of charge, to any person obtaining a copy
+      of this software and associated documentation files (the "Software"), to deal
+      in the Software without restriction, including without limitation the rights
+      to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+      copies of the Software, and to permit persons to whom the Software is
+      furnished to do so, subject to the following conditions:
+
+      The above copyright notice and this permission notice shall be included in
+      all copies or substantial portions of the Software.
+
+      THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+      IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+      FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+      AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+      LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+      OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+      THE SOFTWARE.
+    */
+  /*   [CAUTION !!!]: ------------------------------------------------------------------------------------- */
+    /*
+      Always change the usernames and passwords to avoid the related risks !!!
+      This code is generic and the default settings will expose the device to various risks !!!    
+    */
+  /*   [Notes]: ------------------------------------------------------------------------------------------- */
+    /*
+      1. before compiling ensure the following are installed
+        1.1 WiFiManager   			  		  https://github.com/tzapu/WiFiManager
+        1.2 MQTT						            https://github.com/knolleary/pubsubclient
+        1.3 ArduinoJSON                 https://github.com/bblanchon/ArduinoJson    
+        1.4 Timer Interrupts			      https://github.com/khoih-prog/ESP32TimerInterrupt
+        1.5 NTP time                    https://github.com/arduino-libraries/NTPClient
+        1.6 Async web server			      https://github.com/me-no-dev/ESPAsyncWebServer
+        1.7 Required for WiFi Manager	  https://github.com/me-no-dev/AsyncTCP
+        
+      2. MQTT and Console Commands (first login via the command below)
+        2.1 Console Topic on which the system is listening:
+          /console
+          2.2.1 Public Commands:
+            hello
+          2.3.2 Admin Commands: 
+            2.3.2.1 User Login:
+              user [user] [password] 
+              -> default admin: is admin admin
+              -> default user: is user user
+            2.3.2.2 User Logout
+              user logout      
+            2.3.2.3 Restart 
+              restart
+            2.3.2.4 Get IP address
+              ip
+            2.3.2.5 Get Firmware version
+              version
+            2.3.2.6 Flash Firmware
+              firware update [path to firmware binary]
+            2.3.2.7 Firmware Rollback
+              firmware rollback           
+            2.3.3.8 Reading preferences
+              preferences read startcounter
+              preferences read serialdiagnostics
+              preferences read mqttdiagnostics
+              preferences read mqtthost
+              preferences read mqttport
+              preferences read mqttuser
+              preferences read mqttpass
+              preferences read mqttpath
+              preferences read user1name
+              preferences read user2name
+              preferences read user1pass
+              preferences read user2pass
+              preferences read all
+            2.3.3.9 Enable Diagnostic Messages via MQTT
+              mqttdiag
+              mqttdiag set
+              mqttdiag set persistent
+            2.3.3.10 Clear WiFi Settings
+              wifisettings cear
+    */
+  /*   [Changelog]: --------------------------------------------------------------------------------------- */
+    /*
+    [00.00.00.01]
+      2023.03.07
+        - moved code from internal private repository to public
+        - changed private passwords to default passwords
+        - sanitised code
+        - added MIT license
+        - included WiFi Settings clear command in console
+        - changed login command to user [username] [password]
+        - changed logout command to user logout
+        - added factory reset option in console
+      2023.03.08
+        - added preferences functionality
+        - broke a lot
+    */
+  /*   [To Do]: ------------------------------------------------------------------------------------------- */
+      /*
+      1. firmware update process
+      2. remote admin functionality
+      3. nice to have: change variables to  PEP 8, while not being the standard for C++, this is easier to read as is the standard for Python
+    */
+  
+/* [Includes / Libraries]: -------------------------------------------------------------------------------- */
   /* [Operating System Level]: ---------------------------------------------------------------------------- */
     #include "Arduino.h"              
     #include "WiFiManager.h"          
@@ -181,22 +193,23 @@
       String(ipAddress[2]) + String(".") +\
       String(ipAddress[3])  ; 
     }
-/* [ESP32-1: (Section 1) functions applicable to the ESP32 microcontroller and its libraries]: ------------ */
+/* [Network]: --------------------------------------------------------------------------------------------- */
   //required during first phase of Setup
-  /* [ESP32-1: get ESP32 Efuse mac as string]: ------------------------------------------------------------ */
+  /* [Network: get ESP32 Efuse mac as string]: ------------------------------------------------------------ */
     String getESP32UID() {
       uint64_t chipid = ESP.getEfuseMac();
       char uid[17];
       snprintf(uid, sizeof(uid), "%04X%08X", (uint16_t)(chipid>>32), (uint32_t)chipid);
       return String(uid);
     }
-  /* [ESP32-1: get mac address as string]: ---------------------------------------------------------------- */
+  /* [Network: get mac address as string]: ---------------------------------------------------------------- */
     String getWifiMac(){
       String temp=RemoveStringFromString(WiFi.macAddress(),":");
       return temp;  
     }
-  /* [ESP32-1: preferences ] ------------------------------------------------------------------------------ */
-    Preferences preferences;
+
+/* [Variables]: ------------------------------------------------------------------------------------------- */
+  /* [V: Preferences, data that can be changed and stored]: ----------------------------------------------- */
     long TotalStarts;
     bool SerialDiagnosticMessagesEnabled; //Diagnostic notifications
     bool MQTTDiagnosticMessagesEnabled; //Diagnostic notifications
@@ -207,98 +220,6 @@
     String MQTTpassword                     = "EasyIoT";
     String UserName[2]                     = {"user","admin"};    //only admin working at this stage
     String UserPassword[2]                 = {"user","admin"};   //only admin working at this stage
-    void PreferencesSetup(){
-      preferences.begin("preferences", false);
-      //Start Counter
-        TotalStarts = preferences.getLong("TotalStarts", 0);
-        ++TotalStarts;
-        preferences.putLong("TotalStarts",TotalStarts);
-        //PreferencesInit();
-        //PreferencesRead();
-      }
-    void PreferencesInit(){
-      //Diagnostics
-        if (preferences.getBool("SerialDiagnostic",false)){
-          preferences.putBool("SerialDiagnostic",false);
-        }
-        if (preferences.getBool("MQTTDiagnostic",false)){
-          preferences.putBool("MQTTDiagnostic",false);
-        }
-      //MQTT Settings
-        if (preferences.getString("MQTThost","")==""){
-          preferences.putString("MQTThost",MQTThost);
-          MQTThost=preferences.getString("MQTThost","");
-        }
-        if (preferences.getInt("MQTTport",0)==0){
-          preferences.putInt("MQTTport",MQTTport);
-          MQTTport=preferences.getInt("MQTTport",0);
-        }        
-        if (preferences.getString("MQTTusername","")==""){
-          preferences.putString("MQTTusername",MQTTusername);
-          MQTTusername=preferences.getString("MQTTusername","");
-        }
-        if (preferences.getString("MQTTpassword","")==""){
-          preferences.putString("MQTTpassword",MQTTusername);
-          MQTTpassword=preferences.getString("MQTTpassword","");
-        }
-        if (preferences.getString("MQTTControllerRootPath","")==""){
-          preferences.putString("MQTTControllerRootPath",MQTTControllerRootPath);
-          MQTTControllerRootPath=preferences.getString("MQTTControllerRootPath","");
-        }
-      //User Settings
-        if (preferences.getString("User1Name","")){
-          preferences.putString("User1Name",UserName[1]);
-        }
-        if (preferences.getString("User1Password","")){
-          preferences.putString("User1Password",UserPassword[1]);
-        }
-        if (preferences.getString("User2Name","")){
-          preferences.putString("User2Name",UserName[2]);
-        }
-        if (preferences.getString("User2Password","")){
-          preferences.putString("User2Password",UserPassword[2]);
-        }             
-    }
-    void PreferencesRead(){
-      //Start Counter
-          TotalStarts = preferences.getLong("TotalStarts", 0);
-      //Diagnostics
-        SerialDiagnosticMessagesEnabled = preferences.getBool("SerialDiagnostic",false);
-        MQTTDiagnosticMessagesEnabled = preferences.getBool("MQTTDiagnostic",false);
-      //MQTT Settings
-        MQTThost=preferences.getString("MQTThost","");
-        MQTTport=preferences.getInt("MQTTport",0);      
-        MQTTusername=preferences.getString("MQTTusername","");
-        MQTTpassword=preferences.getString("MQTTpassword","");
-        MQTTControllerRootPath=preferences.getString("MQTTControllerRootPath","");    
-      //User Settings          
-        UserName[1] = preferences.getString("User1Name","");
-        UserName[2] = preferences.getString("User2Name","");
-        UserPassword[1] = preferences.getString("User1Password","");
-        UserPassword[2] = preferences.getString("User2Password","");
-
-    }     
-    void PreferencesWrite(){
-      //Start Counter
-      //Diagnostics      
-        preferences.putBool("SerialDiagnostic",SerialDiagnosticMessagesEnabled);
-        preferences.putBool("MQTTDiagnostic",MQTTDiagnosticMessagesEnabled);
-      //MQTT Settings
-        preferences.putString("MQTThost",MQTThost);
-        preferences.putInt("MQTTport",MQTTport);
-        preferences.putString("MQTTusername",MQTTusername);
-        preferences.putString("MQTTpassword",MQTTusername);
-        preferences.putString("MQTTControllerRootPath",MQTTControllerRootPath);
-      //User Settings         
-        preferences.putString("User1Name",UserName[1]);
-        preferences.putString("User1Password",UserPassword[1]);
-        preferences.putString("User2Name",UserName[2]);
-        preferences.putString("User2Password",UserPassword[2]);
-    }
-    void PreferencesSet(){
-      
-    }
-/* [Variables]: ------------------------------------------------------------------------------------------- */
   /* [V: Device / Server etc. Unique]: -------------------------------------------------------------------- */
     #define ProductName                      "EasyIoT"   
     #define UIDProductName                   "EasyIoT-"    
@@ -327,8 +248,8 @@
     int MQTTwillQoS                         = 0;
     bool MQTTwillRetain                     = true;  
     String MQTTwillMessage                  = "false";  
-/* [Arduino Compatible Board Functions]: ------------------------------------------------------------------ */
-  /* [ABF: Serial Monitor]: ------------------------------------------------------------------------------- */
+
+/* [Serial Monitor]: -------------------------------------------------------------------------------------- */
     void SerialMonitorSetup(){
       Serial.begin(115200);
       delay(100);
@@ -341,8 +262,8 @@
         ConsoleEvaluate(Data);
       }
     }
-/* [ESP32 Specific Functions Part 2]: --------------------------------------------------------------------- */
-  /* [ESP32_2: Spiffs]: ----------------------------------------------------------------------------------- */  
+
+/* [Spiffs]: ---------------------------------------------------------------------------------------------- */  
     void SpiffsSetup(){
       if(!SPIFFS.begin(true)){
         Serial.println("An Error has occurred while mounting SPIFFS");
@@ -486,8 +407,6 @@
         Message("","/console/"); 
       }
     }
-    
-
 /* [Sensors]: --------------------------------------------------------------------------------------------- */
    // place holder
 /* [Actuators]: ------------------------------------------------------------------------------------------- */
@@ -557,50 +476,49 @@
           MQTTMessage(MQTTwillTopic, "true");
         Message ("complete", "/diagnostics/timerinterrupt/timer1/payload", true);
       }
-/* [ESP32 Specific Functions 3]: -------------------------------------------------------------------------- */
-  /* [ESP323: Firmware Update] : -------------------------------------------------------------------------- */
-    HTTPClient client;      
-    int FirmwareTotalLength;       //total size of firmware
-    int FirmwareCurrentLength = 0; //current size of written firmware
-    void FirmwareUpdateSetup(){
-      //if required to run at bootup
-    }
-    void FirmwareUpdate(uint8_t *data, size_t len){
-      Update.write(data, len);
-      FirmwareCurrentLength += len;
-      Serial.print('.');
-      if(FirmwareCurrentLength != FirmwareTotalLength) return;
-      Update.end(true);
-    }
-    void FirmwareFileUpdate(String FirmwareHost){
-      Message("attempting update: "+FirmwareHost,"/firmware",true);  
-      client.begin(FirmwareHost);
-      int resp = client.GET();
-      if(resp == 200){
-        FirmwareTotalLength = client.getSize();
-        int len = FirmwareTotalLength;
-        Update.begin(UPDATE_SIZE_UNKNOWN);
-        uint8_t buff[128] = { 0 };
-        WiFiClient * stream = client.getStreamPtr();
-        while(client.connected() && (len > 0 || len == -1)) {
-          size_t size = stream->available();
-          if(size) {
-            int c = stream->readBytes(buff, ((size > sizeof(buff)) ? sizeof(buff) : size));
-            FirmwareUpdate(buff, c);
-              if(len > 0) {
-                len -= c;
-              }
+/* [Firmware Update] : ------------------------------------------------------------------------------------ */
+  HTTPClient client;      
+  int FirmwareTotalLength;       //total size of firmware
+  int FirmwareCurrentLength = 0; //current size of written firmware
+  void FirmwareUpdateSetup(){
+    //if required to run at bootup
+  }
+  void FirmwareUpdate(uint8_t *data, size_t len){
+    Update.write(data, len);
+    FirmwareCurrentLength += len;
+    Serial.print('.');
+    if(FirmwareCurrentLength != FirmwareTotalLength) return;
+    Update.end(true);
+  }
+  void FirmwareFileUpdate(String FirmwareHost){
+    Message("attempting update: "+FirmwareHost,"/firmware",true);  
+    client.begin(FirmwareHost);
+    int resp = client.GET();
+    if(resp == 200){
+      FirmwareTotalLength = client.getSize();
+      int len = FirmwareTotalLength;
+      Update.begin(UPDATE_SIZE_UNKNOWN);
+      uint8_t buff[128] = { 0 };
+      WiFiClient * stream = client.getStreamPtr();
+      while(client.connected() && (len > 0 || len == -1)) {
+        size_t size = stream->available();
+        if(size) {
+          int c = stream->readBytes(buff, ((size > sizeof(buff)) ? sizeof(buff) : size));
+          FirmwareUpdate(buff, c);
+            if(len > 0) {
+              len -= c;
             }
-            delay(1);
           }
-          Message("update successful, resarting... ","/firmware");  
+          delay(1);
         }
-        else{
-          Message("update not successful, error: "+String(resp),"/firmware");  
-        }
-        client.end();
+        Message("update successful, resarting... ","/firmware");  
       }
-  /* [ESP323: Device Restart] : --------------------------------------------------------------------------- */
+      else{
+        Message("update not successful, error: "+String(resp),"/firmware");  
+      }
+      client.end();
+    }
+/* [Device Restart] : ------------------------------------------------------------------------------------- */
     void restart_device(){
       Message("in 5","/console",true);
       delay(1000);
@@ -667,6 +585,289 @@
     }    
     void JSONLoop(){
     }
+/* [Preferences]: ----------------------------------------------------------------------------------------- */
+    Preferences preferences;
+    String PreferencesTest="";
+    void PreferencesRead(String instruction="none"){
+      preferences.begin("preferences", false);
+      if (instruction=="startcounter"||instruction=="all"){            
+        //Start Counter
+        TotalStarts = preferences.getLong("TotalStarts", 0);
+        Message (String(TotalStarts), "/diagnostics/preferences/startcounter",false);      
+      }
+      if (instruction=="serialdiagnostics"||instruction=="all"){            
+        //SerialDiagnostics
+        SerialDiagnosticMessagesEnabled = preferences.getBool("SerialDiagnostic",false);
+        Message (String(SerialDiagnosticMessagesEnabled), "/diagnostics/preferences/serialdiagnostics",false);        
+      }
+      if (instruction=="mqttdiagnostics"||instruction=="all"){            
+        //MQTTDiagnostics
+        MQTTDiagnosticMessagesEnabled = preferences.getBool("MQTTDiagnostic",false);
+        Message (String(MQTTDiagnosticMessagesEnabled), "/diagnostics/preferences/mqttdiagnostics",false);
+      }
+      if (instruction=="mqtthost"||instruction=="all"){                  
+        //MQTT host
+        MQTThost=preferences.getString("MQTThost",MQTThost);
+        Message (MQTThost, "/diagnostics/preferences/mqtthost",false);
+      }
+      if (instruction=="mqttport"||instruction=="all"){
+        //MQTT port
+        MQTTport=preferences.getInt("MQTTport",MQTTport);
+        Message (String(MQTTport), "/diagnostics/preferences/mqttport",false);
+      }
+      if (instruction=="mqttuser"||instruction=="all"){
+        //MQTT user
+        MQTTusername=preferences.getString("MQTTusername",MQTTusername);
+        Message (MQTTusername, "/diagnostics/preferences/mqttuser",false);
+      }
+      if (instruction=="mqttpass"||instruction=="all"){
+        //MQTT password
+        MQTTpassword=preferences.getString("MQTTpassword",MQTTpassword);
+        Message ("******", "/diagnostics/preferences/mqttpass",false);        
+      }
+      if (instruction=="mqttpath"||instruction=="all"){                    
+        //MQTT root path
+        MQTTControllerRootPath=preferences.getString("MQTTControllerRootPath",MQTTControllerRootPath);    
+        Message (MQTTControllerRootPath, "/diagnostics/preferences/mqttpath",false);        
+      }
+      if (instruction=="user1name"||instruction=="all"){
+        //user 1 name
+        UserName[1] = preferences.getString("User1Name",UserName[1]);
+        Message (UserName[1], "/diagnostics/preferences/user1name",false);      
+      }
+      if (instruction=="user2name"||instruction=="all"){
+        //user 2 name
+        UserName[2] = preferences.getString("User2Name",UserName[2]);
+        Message (UserName[2], "/diagnostics/preferences/user2name",false);
+      }
+      if (instruction=="user1pass"||instruction=="all"){
+        //user 1 password
+        UserPassword[1] = preferences.getString("User1Password",UserPassword[1]);
+        Message ("******", "/diagnostics/preferences/user1pass",false);
+      }
+      if (instruction=="user2pass"||instruction=="all"){
+        //user 2 password        
+        UserPassword[2] = preferences.getString("User2Password",UserPassword[2]);
+        Message ("******", "/diagnostics/preferences/user2pass",false);        
+      }
+      preferences.end();    
+    }     
+    void PreferencesWrite(String instruction="none"){
+      preferences.begin("preferences", false);
+      if (instruction=="startcounter"||instruction=="all"){            
+        //Start Counter
+        preferences.putLong("TotalStarts",TotalStarts);      
+        Message ("written", "/diagnostics/preferences/startcounter",false);
+      }
+      if (instruction=="serialdiagnostics"||instruction=="all"){            
+        //SerialDiagnostics
+        preferences.putBool("SerialDiagnostic",SerialDiagnosticMessagesEnabled);
+        Message ("written", "/diagnostics/preferences/serialdiagnostics",false);        
+      }
+      if (instruction=="mqttdiagnostics"||instruction=="all"){            
+        //MQTTDiagnostics
+        preferences.putBool("MQTTDiagnostic",MQTTDiagnosticMessagesEnabled);
+        Message ("written", "/diagnostics/preferences/mqttdiagnostics",false);
+      }
+      if (instruction=="mqtthost"||instruction=="all"){                  
+        //MQTT host
+        preferences.putString("MQTThost",MQTThost);
+        Message ("written", "/diagnostics/preferences/mqtthost",false);
+      }
+      if (instruction=="mqttport"||instruction=="all"){
+        //MQTT port
+        preferences.putInt("MQTTport",MQTTport);
+        Message ("written", "/diagnostics/preferences/mqttport",false);
+      }
+      if (instruction=="mqttuser"||instruction=="all"){
+        //MQTT user
+        preferences.putString("MQTTusername",MQTTusername);
+        Message ("written", "/diagnostics/preferences/mqttuser",false);
+      }
+      if (instruction=="mqttpass"||instruction=="all"){
+        //MQTT password
+        preferences.putString("MQTTpassword",MQTTpassword);
+        Message ("written", "/diagnostics/preferences/mqttpass",false);
+      }
+      if (instruction=="mqttpath"||instruction=="all"){                    
+        //MQTT root path
+        preferences.putString("MQTTControllerRootPath",MQTTControllerRootPath);
+        Message ("written", "/diagnostics/preferences/mqttpath",false);
+      }
+      if (instruction=="user1name"||instruction=="all"){
+        //user 1 name
+        preferences.putString("User1Name",UserName[1]);
+        Message ("written", "/diagnostics/preferences/user1name",false);
+      }
+      if (instruction=="user2name"||instruction=="all"){
+        //user 2 name
+        preferences.putString("User2Name",UserName[2]);
+        Message ("written", "/diagnostics/preferences/user2name",false);
+      }
+      if (instruction=="user1pass"||instruction=="all"){
+        //user 1 password
+        preferences.putString("User1Password",UserPassword[1]);
+        Message ("written", "/diagnostics/preferences/user1pass",false);
+      }
+      if (instruction=="user2pass"||instruction=="all"){
+        //user 2 password        
+        preferences.putString("User2Password",UserPassword[2]);
+        Message ("written", "/diagnostics/preferences/user2pass",false);
+      }
+      preferences.end();
+    }
+    void PreferencesClear(String instruction="none"){
+      preferences.begin("preferences", false);
+      if (instruction=="startcounter"||instruction=="all"){            
+        //Start Counter
+        preferences.remove("TotalStarts");      
+        Message ("cleared", "/diagnostics/preferences/startcounter",false);
+      }
+      if (instruction=="serialdiagnostics"||instruction=="all"){            
+        //SerialDiagnostics
+        preferences.remove("SerialDiagnostic");
+        Message ("cleared", "/diagnostics/preferences/serialdiagnostics",false);        
+      }
+      if (instruction=="mqttdiagnostics"||instruction=="all"){            
+        //MQTTDiagnostics
+        preferences.remove("MQTTDiagnostic");
+        Message ("cleared", "/diagnostics/preferences/mqttdiagnostics",false);
+      }
+      if (instruction=="mqtthost"||instruction=="all"){                  
+        //MQTT host
+        preferences.remove("MQTThost");
+        Message ("cleared", "/diagnostics/preferences/mqtthost",false);
+      }
+      if (instruction=="mqttport"||instruction=="all"){
+        //MQTT port
+        preferences.remove("MQTTport");
+        Message ("cleared", "/diagnostics/preferences/mqttport",false);
+      }
+      if (instruction=="mqttuser"||instruction=="all"){
+        //MQTT user
+        preferences.remove("MQTTusername");
+        Message ("cleared", "/diagnostics/preferences/mqttuser",false);
+      }
+      if (instruction=="mqttpass"||instruction=="all"){
+        //MQTT password
+        preferences.remove("MQTTpassword");
+        Message ("cleared", "/diagnostics/preferences/mqttpass",false);
+      }
+      if (instruction=="mqttpath"||instruction=="all"){                    
+        //MQTT root path
+        preferences.remove("MQTTControllerRootPath");
+        Message ("cleared", "/diagnostics/preferences/mqttpath",false);
+      }
+      if (instruction=="user1name"||instruction=="all"){
+        //user 1 name
+        preferences.remove("User1Name");
+        Message ("cleared", "/diagnostics/preferences/user1name",false);
+      }
+      if (instruction=="user2name"||instruction=="all"){
+        //user 2 name
+        preferences.remove("User2Name");
+        Message ("cleared", "/diagnostics/preferences/user2name",false);
+      }
+      if (instruction=="user1pass"||instruction=="all"){
+        //user 1 password
+        preferences.remove("User1Password");
+        Message ("cleared", "/diagnostics/preferences/user1pass",false);
+      }
+      if (instruction=="user2pass"||instruction=="all"){
+        //user 2 password        
+        preferences.remove("User2Password");
+        Message ("cleared", "/diagnostics/preferences/user2pass",false);
+      }
+      preferences.end();
+    }
+  
+
+    void PreferencesSet(String instruction="none", String value=""){
+      preferences.begin("preferences", false);
+      if (instruction=="startcounter"){            
+        //Start Counter
+        TotalStarts = atol(value.c_str());
+        Message (String(TotalStarts), "/diagnostics/preferences/startcounter",false);
+      }
+      if (instruction=="serialdiagnostics"){            
+        //SerialDiagnostics
+        if (value=="1"||value=="true"){
+          SerialDiagnosticMessagesEnabled=true;
+        }
+        else{
+          SerialDiagnosticMessagesEnabled=false;
+        }
+        Message (String(SerialDiagnosticMessagesEnabled), "/diagnostics/preferences/serialdiagnostics",false);        
+      }
+      if (instruction=="mqttdiagnostics"){            
+        //MQTTDiagnostics
+        if (value=="1"||value=="true"){
+          MQTTDiagnosticMessagesEnabled=true;
+        }
+        else{
+          MQTTDiagnosticMessagesEnabled=false;
+        }
+        Message (String(MQTTDiagnosticMessagesEnabled), "/diagnostics/preferences/mqttdiagnostics",false);        
+      }
+      if (instruction=="mqtthost"){                  
+        //MQTT host
+        MQTThost=value;
+        Message (MQTThost, "/diagnostics/preferences/mqtthost",false);
+      }
+      if (instruction=="mqttport"){
+        //MQTT port
+        MQTTport=atol(value.c_str());
+        Message (String(MQTTport), "/diagnostics/preferences/mqttport",false);
+      }
+      if (instruction=="mqttuser"){
+        //MQTT user
+        MQTTusername=value;
+        Message (MQTTusername, "/diagnostics/preferences/mqttuser",false);
+      }
+      if (instruction=="mqttpass"){
+        //MQTT password
+        MQTTpassword=value;
+        Message (MQTTpassword, "/diagnostics/preferences/mqttpass",false);
+      }
+      if (instruction=="mqttpath"){                    
+        //MQTT root path
+        preferences.remove("MQTTControllerRootPath");
+        Message ("cleared", "/diagnostics/preferences/mqttpath",false);
+      }
+      if (instruction=="user1name"){
+        //user 1 name
+        preferences.remove("User1Name");
+        Message ("cleared", "/diagnostics/preferences/user1name",false);
+      }
+      if (instruction=="user2name"){
+        //user 2 name
+        preferences.remove("User2Name");
+        Message ("cleared", "/diagnostics/preferences/user2name",false);
+      }
+      if (instruction=="user1pass"){
+        //user 1 password
+        preferences.remove("User1Password");
+        Message ("cleared", "/diagnostics/preferences/user1pass",false);
+      }
+      if (instruction=="user2pass"){
+        //user 2 password        
+        preferences.remove("User2Password");
+        Message ("cleared", "/diagnostics/preferences/user2pass",false);
+      }
+      preferences.end();
+    }
+
+
+  
+    void PreferencesSetup(){
+      preferences.begin("preferences", false);
+      //Start Counter
+        TotalStarts = preferences.getLong("TotalStarts", 0);
+        ++TotalStarts;
+        preferences.putLong("TotalStarts",TotalStarts);
+        PreferencesRead("all");
+      preferences.end();
+      }    
 /* [Console Functions]: ----------------------------------------------------------------------------------- */      
   /* [C: Console Evaluate]: ------------------------------------------------------------------------------- */     
     String ConsoleCommand[6];
@@ -702,53 +903,6 @@
       }
       else if(UserLoggedInStatus[1]){      
         //admin user
-        if (ConsoleCommand[0]=="serialdiag"){
-          //toggle SerialDiag
-          if (ConsoleCommand[1]== "persistent"){
-            preferences.putBool("SerialDiagnostic",SerialDiagnosticMessagesEnabled);
-            Serial.print ("set Serial Diagnostics Settings to persistent: ");    
-            Serial.println (SerialDiagnosticMessagesEnabled);    
-          }
-          else{
-            SerialDiagnosticMessagesEnabled=!SerialDiagnosticMessagesEnabled;
-            Message("switched","/diagnostics/preferences/serialdiagnostics",true); 
-          }
-        }
-        if (ConsoleCommand[0]=="mqttdiag"){
-          //toggle MQTTDiag
-          if (ConsoleCommand[1]== "persistent"){
-            preferences.putBool("MQTTDiagnostic",MQTTDiagnosticMessagesEnabled);
-            Message("set","/diagnostics/preferences/MQTTdiagnostics/persistent",true);                      
-          }
-          else{
-            MQTTDiagnosticMessagesEnabled=!MQTTDiagnosticMessagesEnabled;
-            Message("switched","/diagnostics/preferences/MQTTdiagnostics",true); 
-          }
-          
-        }
-        if (ConsoleCommand[0]=="wifisettings"){
-          if (ConsoleCommand[1]=="clear"){
-            Message("Clearing WiFi settings, restarting. Note: you need to reconnect","/diagnostics/preferences/MQTTdiagnostics",true); 
-            WiFiManagerClear();            
-            restart_device();
-          }
-        }        
-        if (ConsoleCommand[0]=="preferences"){
-          //preferences
-          if (ConsoleCommand[1]== "clear"){
-            preferences.clear();
-            Serial.println ("preferences cleared");            
-          }
-        }
-        if (ConsoleCommand[0]=="factory"){
-          //factory reset
-          if (ConsoleCommand[1]== "reset"){
-            Message("Factory Reset, restarting. Note: you need to reconnect","/diagnostics/preferences/MQTTdiagnostics",true); 
-            preferences.clear();
-            WiFiManagerClear();            
-            restart_device();                     
-          }
-        }              
         if (ConsoleCommand[0]=="restart"){
           //restart
           Message("restarting","/console/"); 
@@ -779,12 +933,26 @@
           }
         }
         else if (ConsoleCommand[0]=="millis"){
-        //millis
+          //millis
           Message(String(millis(),DEC),"/console/"); 
-        }       
+        }
+        else if (ConsoleCommand[0]=="preferences"){
+          if (ConsoleCommand[1]=="read"){
+            PreferencesRead(ConsoleCommand[2]);
+          }
+          if (ConsoleCommand[1]=="write"){
+            PreferencesWrite(ConsoleCommand[2]);
+          }
+          if (ConsoleCommand[1]=="clear"){
+            PreferencesClear(ConsoleCommand[2]);
+          } 
+          if (ConsoleCommand[1]=="set"){
+            PreferencesSet(ConsoleCommand[2],ConsoleCommand[3]);
+          }
+        }   
       }
       if(UserLoggedInStatus[0]||UserLoggedInStatus[1]){      
-      //either user logged in
+        //either user logged in
         if (ConsoleCommand[0]=="user"){
           if (ConsoleCommand[1]=="logout"){
             UserLogout();
@@ -792,12 +960,21 @@
         }
       }      
       else{
-      //anonymous user
+        //anonymous user
         if (ConsoleCommand[0]=="hello"){
           Message("world","/console/"); 
         }
         else if (ConsoleCommand[0]=="user"){
           UserLogin(ConsoleCommand[1], ConsoleCommand[2]);
+        }
+        if (ConsoleCommand[0]=="read"){
+          PreferencesRead();
+        }
+        if (ConsoleCommand[0]=="write"){
+          PreferencesWrite();
+        }
+        if (ConsoleCommand[0]=="clear"){
+          PreferencesClear();
         }
         else {
         }
