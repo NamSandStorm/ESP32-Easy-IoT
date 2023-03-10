@@ -102,6 +102,8 @@
         - broke a lot
       2023.03.09
         - added factory reset functionality
+      2023.03.10
+        - nothing yet
     */
   /*   [To Do]: ------------------------------------------------------------------------------------------- */
       /*
@@ -622,15 +624,15 @@
         Message ("success", "/console",false);        
         Message (String(TotalStarts), "/preferences/startcounter",true);      
       }
-      if (instruction=="serialdiagnostics"||instruction=="all"){
-        //SerialDiagnostics     SerialDiagnosticMessagesEnabled
-        SerialDiagnosticMessagesEnabled = preferences.getBool("serialdiag",false);
-        Message (String(SerialDiagnosticMessagesEnabled), "/preferences/serialdiagnostics",false);  
-      }
       if (instruction=="mqttdiagnostics"||instruction=="all"){
         //MQTTDiagnostics
         MQTTDiagnosticMessagesEnabled = preferences.getBool("mqttdiag",false);
         Message (String(MQTTDiagnosticMessagesEnabled), "/preferences/mqttdiagnostics",false);
+      }      
+      if (instruction=="serialdiagnostics"||instruction=="all"){
+        //SerialDiagnostics     SerialDiagnosticMessagesEnabled
+        SerialDiagnosticMessagesEnabled = preferences.getBool("serialdiag",false);
+        Message (String(SerialDiagnosticMessagesEnabled), "/preferences/serialdiagnostics",false);  
       }
       if (instruction=="mqtthost"||instruction=="all"){
         //MQTT host
@@ -679,17 +681,17 @@
         Message ("success", "/console",false);   
         Message ("written", "/preferences/startcounter",true);
       }
-      if (instruction=="serialdiagnostics"||instruction=="all"){
-        //SerialDiagnostics    SerialDiagnosticMessagesEnabled
-        preferences.putBool("serialdiag",SerialDiagnosticMessagesEnabled);
-        Message ("success", "/console",false);        
-        Message ("written", "/preferences/serialdiagnostics",false);        
-      }
       if (instruction=="mqttdiagnostics"||instruction=="all"){
         //MQTTDiagnostics
         preferences.putBool("mqtt",MQTTDiagnosticMessagesEnabled);
         Message ("success", "/console",false);        
         Message ("written", "/preferences/mqttdiagnostics",false);
+      }
+      if (instruction=="serialdiagnostics"||instruction=="all"){
+        //SerialDiagnostics    SerialDiagnosticMessagesEnabled
+        preferences.putBool("serialdiag",SerialDiagnosticMessagesEnabled);
+        Message ("success", "/console",false);        
+        Message ("written", "/preferences/serialdiagnostics",false);        
       }
       if (instruction=="mqtthost"||instruction=="all"){
         //MQTT host
@@ -738,17 +740,17 @@
         Message ("success", "/console",false);  
         Message ("cleared", "/preferences/startcounter",true);
       }
-      if (instruction=="serialdiagnostics"||instruction=="all"){
-        //SerialDiagnostics
-        preferences.remove("serialdiag");
-        Message ("success", "/console",false);        
-        Message ("cleared", "/preferences/serialdiagnostics",false);        
-      }
       if (instruction=="mqttdiagnostics"||instruction=="all"){
         //MQTTDiagnostics
         preferences.remove("mqttdiag");
         Message ("success", "/console",false);
         Message ("cleared", "/preferences/mqttdiagnostics",false);
+      }
+      if (instruction=="serialdiagnostics"||instruction=="all"){
+        //SerialDiagnostics
+        preferences.remove("serialdiag");
+        Message ("success", "/console",false);        
+        Message ("cleared", "/preferences/serialdiagnostics",false);        
       }
       if (instruction=="mqtthost"||instruction=="all"){
         //MQTT host
@@ -797,17 +799,6 @@
         Message ("success", "/console",false);
         Message (String(TotalStarts), "/preferences/startcounter",true);
       }
-      if (instruction=="serialdiagnostics"){
-        //SerialDiagnostics
-        if (value=="1"||value=="true"){
-          SerialDiagnosticMessagesEnabled=true;
-        }
-        else{
-          SerialDiagnosticMessagesEnabled=false;
-        }
-        Message ("success", "/console",false);        
-        Message (String(SerialDiagnosticMessagesEnabled), "/preferences/serialdiagnostics",true);
-      }
       if (instruction=="mqttdiagnostics"){
         //MQTTDiagnostics
         if (value=="1"||value=="true"){
@@ -818,6 +809,17 @@
         }
         Message ("success", "/console",false);        
         Message (String(MQTTDiagnosticMessagesEnabled), "/preferences/mqttdiagnostics",true);
+      }
+      if (instruction=="serialdiagnostics"){
+        //SerialDiagnostics
+        if (value=="1"||value=="true"){
+          SerialDiagnosticMessagesEnabled=true;
+        }
+        else{
+          SerialDiagnosticMessagesEnabled=false;
+        }
+        Message ("success", "/console",false);        
+        Message (String(SerialDiagnosticMessagesEnabled), "/preferences/serialdiagnostics",true);
       }
       if (instruction=="mqtthost"){
         //MQTT host
@@ -951,6 +953,7 @@
           }
         }
         if (ConsoleCommand[0]=="preferences"){
+
           if (ConsoleCommand[1]=="read"){
             PreferencesRead(ConsoleCommand[2]);
           }
