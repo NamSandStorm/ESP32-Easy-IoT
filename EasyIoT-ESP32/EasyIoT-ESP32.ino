@@ -160,7 +160,8 @@
   /* [V: Environment and other]: -------------------------------------------------------------------------- */
     bool internetConnected                  = false;
     String UID                              = UIDproductName + getESP32UID();   //only works with ESP32
-    int WiFiManagerConfigPortalTimeout      = 120;    //how long the connect portal should remain live
+    String wiFiManagerHostName              = UID;
+    int wiFiManagerConfigPortalTimeout      = 120;    //how long the connect portal should remain live
     String firmwareRollBackUrl              = "";
   /* [V: Detail Settings]: -------------------------------------------------------------------------------- */
     int bootDelay                           = 2;     //delay until loop can execute, avoids crazy initial readings
@@ -205,12 +206,13 @@
     void WiFiManagerSetup(){
       Serial.println("WiFi config: starting...");
       WiFi.mode(WIFI_STA); 
+      wm.setHostname(wiFiManagerHostName);
       Serial.setDebugOutput(true);  
       if(wmNonblocking) wm.setConfigPortalBlocking(false);
       std::vector<const char *> menu = {"wifi","sep","exit"};
       wm.setMenu(menu);
       wm.setClass("invert");
-      wm.setConfigPortalTimeout(WiFiManagerConfigPortalTimeout); // auto close configportal after n seconds
+      wm.setConfigPortalTimeout(wiFiManagerConfigPortalTimeout); // auto close configportal after n seconds
       bool res;
       res = wm.autoConnect(joinWiFiSSID,joinWiFiPassword); // password protected ap
       if(!res){
