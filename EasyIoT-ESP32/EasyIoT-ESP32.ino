@@ -352,6 +352,9 @@
         delay(200);
         preferences.begin("preferences", false);
         preferences.clear();
+        adminActive=true;
+        handleInstruction("var totalstarts write "+ String(totalStarts));
+        adminActive=false;
         preferences.end();
         delay(200);
         restartDevice();
@@ -543,244 +546,22 @@
       handleJSONevents();
     }    
 /* [Preferences]: ----------------------------------------------------------------------------------------- */
-    void readPreferences(String instruction ="none"){
-      preferences.begin("preferences", false);
-
-      if (instruction == "mqtthost" || instruction == "all"){
-        //MQTT host
-        MQTThost = preferences.getString("MQTThost",MQTThost);
-        sendMessage (MQTThost, "/preferences/mqtthost",false);
-      }
-      if (instruction == "mqttport" || instruction == "all"){
-        //MQTT port
-        MQTTport = preferences.getInt("MQTTport",MQTTport);
-        sendMessage (String(MQTTport), "/preferences/mqttport",false);
-      }
-      if (instruction == "mqttusername" || instruction == "all"){
-        //MQTT user
-        MQTTuserName = preferences.getString(",mqttusername",MQTTuserName);
-        sendMessage (MQTTuserName, "/preferences/mqttusername",false);
-      }
-      if (instruction == "mqttpass" || instruction == "all"){
-        //MQTT password
-        MQTTpassword = preferences.getString("MQTTpassword",MQTTpassword);
-        sendMessage ("******", "/preferences/mqttpass",false);        
-      }
-      if (instruction == "mqttrootpath" || instruction == "all"){
-        //MQTT root path
-        MQTTrootPath = preferences.getString("mqttrootpath",MQTTrootPath);    
-        sendMessage (MQTTrootPath, "/preferences/mqttrootpath",false);        
-      }
-      if (instruction == "adminusername" || instruction == "all"){
-        //admin user name
-        adminUserName = preferences.getString("adminusername",adminUserName);
-        sendMessage ("success", "/console",false);        
-        sendMessage (adminUserName, "/preferences/adminusername",true);      
-      }
-      if (instruction == "adminpassword" || instruction == "all"){
-        //admin password
-        adminPassword = preferences.getString("adminpassword",adminPassword);
-        sendMessage ("success", "/console",false);        
-        sendMessage (adminPassword, "/preferences/adminpassword",true);
-      }
-      preferences.end();    
-    }     
-    void writePreferences(String instruction = "none"){
-      preferences.begin("preferences", false);
-      if (instruction == "startcounter" || instruction == "all"){
-        //Start Counter
-        preferences.putLong("totalStarts",totalStarts);   
-        sendMessage ("success", "/console",false);   
-        sendMessage ("written", "/preferences/startcounter",true);
-      }
-      if (instruction == "mqttdiagnostics" || instruction == "all"){
-        //MQTTDiagnostics
-        preferences.putBool("mqtt",messagingDiagMQTT);
-        sendMessage ("success", "/console",false);        
-        sendMessage ("written", "/preferences/mqttdiagnostics",false);
-      }
-      if (instruction == "serialdiagnostics" || instruction == "all"){
-        //SerialDiagnostics    
-        preferences.putBool("serialdiag",messagingDiagSerial);
-        sendMessage ("success", "/console",false);        
-        sendMessage ("written", "/preferences/serialdiagnostics",false);        
-      }
-      if (instruction == "mqtthost" || instruction == "all"){
-        //MQTT host
-        preferences.putString("MQTThost",MQTThost);
-        sendMessage ("written", "/preferences/mqtthost",false);
-      }
-      if (instruction == "mqttport" || instruction == "all"){
-        //MQTT port
-        preferences.putInt("MQTTport",MQTTport);
-        sendMessage ("written", "/preferences/mqttport",false);
-      }
-      if (instruction == "mqttusername" || instruction == "all"){
-        //MQTT user
-        preferences.putString("mqttusername",MQTTuserName);
-        sendMessage ("written", "/preferences/mqttusername",false);
-      }
-      if (instruction == "mqttpass" || instruction == "all"){
-        //MQTT password
-        preferences.putString("MQTTpassword",MQTTpassword);
-        sendMessage ("written", "/preferences/mqttpass",false);
-      }
-      if (instruction == "mqttrootpath" || instruction == "all"){
-        //MQTT root path
-        preferences.putString("mqttrootpath",MQTTrootPath);
-        sendMessage ("written", "/preferences/mqttrootpath",false);
-      }
-      if (instruction == "adminusername" || instruction == "all"){
-        //admin user name
-        preferences.putString("adminusername",adminUserName);
-        sendMessage ("success", "/console",false);
-        sendMessage ("written", "/preferences/adminusername",true);
-      }
-      if (instruction == "adminpassword" || instruction == "all"){
-        //admin password
-        preferences.putString("adminpassword",adminPassword);
-        sendMessage ("success", "/console",false);
-        sendMessage ("written", "/preferences/adminpassword",true);
-      }
-      preferences.end();
-    }
-    void clearPreferences(String instruction = "none"){
-      preferences.begin("preferences", false);
-      if (instruction == "startcounter" || instruction == "all"){
-        //Start Counter
-        preferences.remove("totalStarts");   
-        sendMessage ("success", "/console",false);  
-        sendMessage ("cleared", "/preferences/startcounter",true);
-      }
-      if (instruction == "mqttdiagnostics" || instruction == "all"){
-        //MQTTDiagnostics
-        preferences.remove("mqttdiag");
-        sendMessage ("success", "/console",false);
-        sendMessage ("cleared", "/preferences/mqttdiagnostics",false);
-      }
-      if (instruction == "serialdiagnostics" || instruction == "all"){
-        //SerialDiagnostics
-        preferences.remove("serialdiag");
-        sendMessage ("success", "/console",false);        
-        sendMessage ("cleared", "/preferences/serialdiagnostics",false);        
-      }
-      if (instruction == "mqtthost" || instruction == "all"){
-        //MQTT host
-        preferences.remove("MQTThost");
-        sendMessage ("cleared", "/preferences/mqtthost",false);
-      }
-      if (instruction == "mqttport" || instruction == "all"){
-        //MQTT port
-        preferences.remove("MQTTport");
-        sendMessage ("cleared", "/preferences/mqttport",false);
-      }
-      if (instruction == "mqttuser" || instruction == "all"){
-        //MQTT user
-        preferences.remove("mqttusername");
-        sendMessage ("cleared", "/preferences/mqttusername",false);
-      }
-      if (instruction == "mqttpass" || instruction == "all"){
-        //MQTT password
-        preferences.remove("MQTTpassword");
-        sendMessage ("cleared", "/preferences/mqttpass",false);
-      }
-      if (instruction == "mqttrootpath" || instruction == "all"){
-        //MQTT root path
-        preferences.remove("mqttrootpath");
-        sendMessage ("cleared", "/preferences/mqttrootpath",false);
-      }
-      if (instruction == "adminusername" || instruction == "all"){
-        //admin user name
-        preferences.remove("adminusername");
-        sendMessage ("success", "/console",false);
-        sendMessage ("cleared", "/preferences/adminusername",true);
-      }
-      if (instruction == "adminpassword" || instruction == "all"){
-        //admin password
-        preferences.remove("adminpassword");
-        sendMessage ("success", "/console",false);    
-        sendMessage ("cleared", "/preferences/adminpassword",true);
-      }
-      preferences.end();
-    }
-    void setPreferences(String instruction = "none", String value = ""){
-      preferences.begin("preferences", false);
-      if (instruction == "startcounter"){
-        //Start Counter
-        totalStarts = atol(value.c_str());
-        sendMessage ("success", "/console",false);
-        sendMessage (String(totalStarts), "/preferences/startcounter",true);
-      }
-      if (instruction == "mqttdiagnostics"){
-        //MQTTDiagnostics
-        if (value == "1" || value == "true"){
-          messagingDiagMQTT = true;
-        }
-        else{
-          messagingDiagMQTT = false;
-        }
-        sendMessage ("success", "/console",false);        
-        sendMessage (String(messagingDiagMQTT), "/preferences/mqttdiagnostics",true);
-      }
-      if (instruction == "serialdiagnostics"){
-        //SerialDiagnostics
-        if (value == "1" || value == "true"){
-          messagingDiagSerial = true;
-        }
-        else{
-          messagingDiagSerial = false;
-        }
-        sendMessage ("success", "/console",false);        
-        sendMessage (String(messagingDiagSerial), "/preferences/serialdiagnostics",true);
-      }
-      if (instruction == "mqtthost"){
-        //MQTT host
-        MQTThost = value;
-        sendMessage (MQTThost, "/preferences/mqtthost",false);
-      }
-      if (instruction == "mqttport"){
-        //MQTT port
-        MQTTport = atol(value.c_str());
-        sendMessage (String(MQTTport), "/preferences/mqttport",false);
-      }
-      if (instruction == "mqttuser"){
-        //MQTT user
-        MQTTuserName = value;
-        sendMessage (MQTTuserName, "/preferences/mqttusername",false);
-      }
-      if (instruction == "mqttpass"){
-        //MQTT password
-        MQTTpassword = value;
-        sendMessage (MQTTpassword, "/preferences/mqttpass",false);
-      }
-      if (instruction == "mqttrootpath"){
-        //MQTT root path
-        preferences.remove("mqttrootpath");
-        sendMessage ("cleared", "/preferences/mqttrootpath",false);
-      }
-      if (instruction == "adminusername"){
-        //admin user name
-        adminUserName = value;
-        sendMessage ("success", "/console",false);        
-        sendMessage ("set", "/preferences/adminusername",true);
-      }
-      if (instruction == "adminpassword"){
-        //admin password
-        adminPassword = value;
-        sendMessage ("success", "/console",false);
-        sendMessage ("set", "/preferences/adminpassword",true);
-      }
-      preferences.end();
-    }
     void setupPreferences(){
-      preferences.begin("preferences", false);
-      //Start Counter
-        totalStarts = preferences.getLong("totalStarts", 0);
-        ++totalStarts;
-        preferences.putLong("totalStarts",totalStarts);
-        readPreferences("all");
-      preferences.end();
-      }    
+      adminActive=true;        
+      handleInstruction("var totalstarts read");
+      ++totalStarts;
+      handleInstruction("var totalstarts write "+ String(totalStarts));
+      handleInstruction("var mqttdiag read");
+      handleInstruction("var serialdiag read");
+      handleInstruction("var adminusername read");
+      handleInstruction("var adminpassword read");
+      handleInstruction("var mqtthost read");
+      handleInstruction("var mqttport read");
+      handleInstruction("var mqttusername read");
+      handleInstruction("var mqttpassword read");
+      handleInstruction("var mqttrootpath read");
+      adminActive=false;
+    }    
 /* [Instructions]: ---------------------------------------------------------------------------------------- */      
   String consoleCommand[6];
   void splitInstruction(String text,String separator=" "){
@@ -860,20 +641,6 @@
           sendMessage ("Firmware update complete, restarting ..."+consoleCommand[2],"/console/");
           delay(1000);
           restartDevice();
-        }
-      }
-      if (consoleCommand[0] == "preferences"){
-        if (consoleCommand[1] == "read"){
-          readPreferences(consoleCommand[2]);
-        }
-        if (consoleCommand[1] == "write"){
-          writePreferences(consoleCommand[2]);
-        }
-        if (consoleCommand[1] == "clear"){
-          clearPreferences(consoleCommand[2]);
-        } 
-        if (consoleCommand[1] == "set"){
-          setPreferences(consoleCommand[2],consoleCommand[3]);
         }
       }
       if (consoleCommand[0] == "var"){
@@ -965,167 +732,162 @@
         }            
         if (consoleCommand[1] == "adminusername"){
           if (consoleCommand[2] == "get"){
-            sendMessage (adminUserName, "/console/var/adminusername/get",false);
+            sendMessage (adminUserName, "/console/var/adminusername/get",true);
           }
           if (consoleCommand[2] == "set"){
             adminUserName = consoleCommand[3];
-            sendMessage (adminUserName, "/console/var/adminusername/set",false);
+            sendMessage (adminUserName, "/console/var/adminusername/set",true);
           }
           if (consoleCommand[2] == "read"){
             adminUserName = preferences.getString("adminusername",adminUserName);
-            sendMessage (adminUserName, "/console/var/adminusername/read",false);
+            sendMessage (adminUserName, "/console/var/adminusername/read",true);
           }
           if (consoleCommand[2] == "write"){
             adminUserName = consoleCommand[3];
             preferences.putString("adminusername",adminUserName);              
-            sendMessage (adminUserName, "/console/var/adminusername/write",false);
+            sendMessage (adminUserName, "/console/var/adminusername/write",true);
           }
           if (consoleCommand[2] == "default"){
             preferences.remove("adminusername");              
-            sendMessage ("set to default, restart to apply!", "/console/var/adminusername/default",false);
+            sendMessage ("set to default, restart to apply!", "/console/var/adminusername/default",true);
           }
         }
         if (consoleCommand[1] == "adminpassword"){
           if (consoleCommand[2] == "get"){
-            sendMessage (adminPassword, "/console/var/adminpassword/get",false);
+            sendMessage (adminPassword, "/console/var/adminpassword/get",true);
           }
           if (consoleCommand[2] == "set"){
             adminPassword = consoleCommand[3];
-            sendMessage (adminPassword, "/console/var/adminpassword/set",false);
+            sendMessage (adminPassword, "/console/var/adminpassword/set",true);
           }
           if (consoleCommand[2] == "read"){
             adminPassword = preferences.getString("adminpassword",adminPassword);
-            sendMessage (adminPassword, "/console/var/adminpassword/read",false);
+            sendMessage (adminPassword, "/console/var/adminpassword/read",true);
           }
           if (consoleCommand[2] == "write"){
             adminPassword = consoleCommand[3];
             preferences.putString("adminpassword",adminPassword);              
-            sendMessage (adminPassword, "/console/var/adminpassword/write",false);
+            sendMessage (adminPassword, "/console/var/adminpassword/write",true);
           }
           if (consoleCommand[2] == "default"){
             preferences.remove("adminpassword");              
-            sendMessage ("set to default, restart to apply!", "/console/var/adminpassword/default",false);
+            sendMessage ("set to default, restart to apply!", "/console/var/adminpassword/default",true);
           }
         }
         if (consoleCommand[1] == "mqtthost"){
           if (consoleCommand[2] == "get"){
-            sendMessage (MQTThost, "/console/var/mqtthost/get",false);
+            sendMessage (MQTThost, "/console/var/mqtthost/get",true);
           }
           if (consoleCommand[2] == "set"){
             MQTThost = consoleCommand[3];
-            sendMessage (MQTThost, "/console/var/mqtthost/set",false);
+            sendMessage (MQTThost, "/console/var/mqtthost/set",true);
           }
           if (consoleCommand[2] == "read"){
             MQTThost = preferences.getString("mqtthost",MQTThost);
-            sendMessage (MQTThost, "/console/var/mqtthost/read",false);
+            sendMessage (MQTThost, "/console/var/mqtthost/read",true);
           }
           if (consoleCommand[2] == "write"){
             MQTThost = consoleCommand[3];
             preferences.putString("mqtthost",MQTThost);  
-            sendMessage (MQTThost, "/console/var/mqtthost/write",false);
+            sendMessage (MQTThost, "/console/var/mqtthost/write",true);
           }
           if (consoleCommand[2] == "default"){
             preferences.remove("mqtthost");              
-            sendMessage ("set to default, restart to apply!", "/console/var/mqtthost/default",false);
+            sendMessage ("set to default, restart to apply!", "/console/var/mqtthost/default",true);
           }         
         }
         if (consoleCommand[1] == "mqttport"){
           if (consoleCommand[2] == "get"){
-            sendMessage (String(MQTTport), "/console/var/mqttport/get",false);
+            sendMessage (String(MQTTport), "/console/var/mqttport/get",true);
           }
           if (consoleCommand[2] == "set"){
             MQTTport = atol(consoleCommand[3].c_str());
-            sendMessage (String(MQTTport), "/console/var/mqttport/set",false);
+            sendMessage (String(MQTTport), "/console/var/mqttport/set",true);
           }
           if (consoleCommand[2] == "read"){
             MQTTport = preferences.getInt("mqttport",MQTTport);
-            sendMessage (String(MQTTport), "/console/var/mqttport/read",false);
+            sendMessage (String(MQTTport), "/console/var/mqttport/read",true);
           }
           if (consoleCommand[2] == "write"){
             MQTTport = atol(consoleCommand[3].c_str());
             preferences.putInt("mqttport",MQTTport);  
-            sendMessage (String(MQTTport), "/console/var/mqttport/write",false);
+            sendMessage (String(MQTTport), "/console/var/mqttport/write",true);
           }
           if (consoleCommand[2] == "default"){
             preferences.remove("mqttport");              
-            sendMessage ("set to default, restart to apply!", "/console/var/mqttport/default",false);
+            sendMessage ("set to default, restart to apply!", "/console/var/mqttport/default",true);
           }         
         }
         if (consoleCommand[1] == "mqttusername"){
           if (consoleCommand[2] == "get"){
-            sendMessage (MQTTuserName, "/console/var/mqttusername/get",false);
+            sendMessage (MQTTuserName, "/console/var/mqttusername/get",true);
           }
           if (consoleCommand[2] == "set"){
             MQTTuserName = consoleCommand[3];
-            sendMessage (MQTTuserName, "/console/var/mqttusername/set",false);
+            sendMessage (MQTTuserName, "/console/var/mqttusername/set",true);
           }
           if (consoleCommand[2] == "read"){
             MQTTuserName = preferences.getString("mqttusername",MQTTuserName);
-            sendMessage (MQTTuserName, "/console/var/mqttusername/read",false);
+            sendMessage (MQTTuserName, "/console/var/mqttusername/read",true);
           }
           if (consoleCommand[2] == "write"){
             MQTTuserName = consoleCommand[3];
             preferences.putString("mqttusername",MQTTuserName);  
-            sendMessage (MQTTuserName, "/console/var/mqttusername/write",false);
+            sendMessage (MQTTuserName, "/console/var/mqttusername/write",true);
           }
           if (consoleCommand[2] == "default"){
             preferences.remove("mqttusername");              
-            sendMessage ("set to default, restart to apply!", "/console/var/mqttusername/default",false);
+            sendMessage ("set to default, restart to apply!", "/console/var/mqttusername/default",true);
           }         
         }
         if (consoleCommand[1] == "mqttpassword"){
           if (consoleCommand[2] == "get"){
-            sendMessage (MQTTpassword, "/console/var/mqttpassword/get",false);
+            sendMessage (MQTTpassword, "/console/var/mqttpassword/get",true);
           }
           if (consoleCommand[2] == "set"){
             MQTTpassword = consoleCommand[3];
-            sendMessage (MQTTpassword, "/console/var/mqttpassword/set",false);
+            sendMessage (MQTTpassword, "/console/var/mqttpassword/set",true);
           }
           if (consoleCommand[2] == "read"){
             MQTTpassword = preferences.getString("mqttpassword",MQTTpassword);
-            sendMessage (MQTTpassword, "/console/var/mqttpassword/read",false);
+            sendMessage (MQTTpassword, "/console/var/mqttpassword/read",true);
           }
           if (consoleCommand[2] == "write"){
             MQTTpassword = consoleCommand[3];
             preferences.putString("mqttpassword",MQTTpassword);  
-            sendMessage (MQTTpassword, "/console/var/mqttpassword/write",false);
+            sendMessage (MQTTpassword, "/console/var/mqttpassword/write",true);
           }
           if (consoleCommand[2] == "default"){
             preferences.remove("mqttpassword");              
-            sendMessage ("set to default, restart to apply!", "/console/var/mqttpassword/default",false);
+            sendMessage ("set to default, restart to apply!", "/console/var/mqttpassword/default",true);
           }         
         }
         if (consoleCommand[1] == "mqttrootpath"){
           if (consoleCommand[2] == "get"){
-            sendMessage (MQTTrootPath, "/console/var/mqttrootpath/get",false);
+            sendMessage (MQTTrootPath, "/console/var/mqttrootpath/get",true);
           }
           if (consoleCommand[2] == "set"){
             MQTTrootPath = consoleCommand[3];
-            sendMessage (MQTTrootPath, "/console/var/mqttrootpath/set",false);
+            sendMessage (MQTTrootPath, "/console/var/mqttrootpath/set",true);
           }
           if (consoleCommand[2] == "read"){
             MQTTrootPath = preferences.getString("mqttrootpath",MQTTrootPath);
-            sendMessage (MQTTrootPath, "/console/var/mqttrootpath/read",false);
+            sendMessage (MQTTrootPath, "/console/var/mqttrootpath/read",true);
           }
           if (consoleCommand[2] == "write"){
             MQTTrootPath = consoleCommand[3];
             preferences.putString("mqttrootpath",MQTTrootPath);  
-            sendMessage (MQTTrootPath, "/console/var/mqttrootpath/write",false);
+            sendMessage (MQTTrootPath, "/console/var/mqttrootpath/write",true);
           }
           if (consoleCommand[2] == "default"){
             preferences.remove("mqttrootpath");              
-            sendMessage ("set to default, restart to apply!", "/console/var/mqttrootpath/default",false);
+            sendMessage ("set to default, restart to apply!", "/console/var/mqttrootpath/default",true);
           }         
         }
         preferences.end();
       }
     }
   }
-  void setupInstruction(){
-    adminActive=true;
-    handleInstruction("");
-    adminActive=false;
-  }  
 /* [Default Arduino Functions]: --------------------------------------------------------------------------- */
   /* [DAF: Arduino Setup] : ------------------------------------------------------------------------------- */
     void setup(){
