@@ -70,8 +70,8 @@
                   preferences read mqttdiagnostics
                   preferences read mqtthost
                   preferences read mqttport
-                  preferences read mqttuser
-                  preferences read mqttpass
+                  preferences read mqttusername
+                  preferences read mqttpassword
                   preferences read mqttrootpath
                   preferences read adminuser
                   preferences read adminpassword
@@ -182,7 +182,7 @@
       data = Serial.readString();
       if (data != ""){
         data.remove (data.length() - 1,1);
-        handleConsole (data);
+        handleInstruction (data);
       }
     }
 
@@ -272,7 +272,7 @@
       Serial.print("sending message to be evaluated: ");
       Serial.println(message);
       if( message != ""){
-        handleConsole (message);
+        handleInstruction (message);
       }
     }
     void disconnectMQTT (){
@@ -546,8 +546,6 @@
     void readPreferences(String instruction ="none"){
       preferences.begin("preferences", false);
 
-     
-
       if (instruction == "mqtthost" || instruction == "all"){
         //MQTT host
         MQTThost = preferences.getString("MQTThost",MQTThost);
@@ -783,253 +781,351 @@
         readPreferences("all");
       preferences.end();
       }    
-/* [Console Functions]: ----------------------------------------------------------------------------------- */      
-  /* [C: Console Evaluate]: ------------------------------------------------------------------------------- */     
-    String consoleCommand[6];
-    void splitCommand(String text,String separator=" "){
-      //break up the instruction into max 6 parameters
-      text.replace("\n","");
-      int length = text.length();
-      int consoleCommands = 0;
-      consoleCommand[0] = "";
-      String test = "";
-      for (int i = 0; i < length; i++) {
-        test = text.substring(i,i+1);
-        if (test == separator){
-          consoleCommands++;
-          consoleCommand[consoleCommands] = "";
-        }
-        else {
-          consoleCommand[consoleCommands] = consoleCommand[consoleCommands]+test;
+/* [Instructions]: ---------------------------------------------------------------------------------------- */      
+  String consoleCommand[6];
+  void splitInstruction(String text,String separator=" "){
+    //break up the instruction into max 6 parameters
+    text.replace("\n","");
+    int length = text.length();
+    int consoleCommands = 0;
+    consoleCommand[0] = "";
+    String test = "";
+    for (int i = 0; i < length; i++) {
+      test = text.substring(i,i+1);
+      if (test == separator){
+        consoleCommands++;
+        consoleCommand[consoleCommands] = "";
+      }
+      else {
+        consoleCommand[consoleCommands] = consoleCommand[consoleCommands]+test;
+      }
+    }
+  }
+  void handleInstruction (String receivedInstruction){
+    splitInstruction(receivedInstruction);
+    if(receivedInstruction != "message received ..."){
+      //clear old commands from console, important for public facing MQTT        
+      sendMessage ("message received ...","/console");
+    }
+    if(!adminActive){      
+      //no user logged in
+      if (consoleCommand[0] == "hello"){
+        sendMessage ("world","/console/"); 
+      }
+      if (consoleCommand[0] == "user"){
+        if (consoleCommand[1] == "login"){
+          loginUser(consoleCommand[2], consoleCommand[3]);
         }
       }
     }
-    void handleConsole (String receivedMessage){
-      splitCommand(receivedMessage);
-      if(receivedMessage != "message received ..."){
-        //clear old commands from console, important for public facing MQTT        
-        sendMessage ("message received ...","/console");
+    else {      
+      //admin user logged in
+      if (consoleCommand[0] == "user"){
+        if (consoleCommand[1] == "logout"){
+          logoutUser();
+        }  
       }
-      if(!adminActive){      
-        //no user logged in
-        if (consoleCommand[0] == "hello"){
-          sendMessage ("world","/console/"); 
-        }
-        if (consoleCommand[0] == "user"){
-          if (consoleCommand[1] == "login"){
-            loginUser(consoleCommand[2], consoleCommand[3]);
-          }
-        }
+      if (consoleCommand[0] == "millis"){
+        //millis
+        sendMessage (String(millis(),DEC),"/console/"); 
+      }        
+      if (consoleCommand[0] == "ip"){
+        //get ip
+        sendMessage (ip2String(WiFi.localIP()),"/console/"); 
       }
-      else {      
-        //admin user logged in
-        if (consoleCommand[0] == "user"){
-          if (consoleCommand[1] == "logout"){
-            logoutUser();
-          }  
+      if (consoleCommand[0] == "starts"){
+        //number of starts of device
+        sendMessage (String(totalStarts),"/console/");  
+      }
+      if (consoleCommand[0] == "restart"){
+        //restart
+        sendMessage ("restarting","/console/"); 
+        restartDevice();
+      }
+      if (consoleCommand[0] == "firmware"){
+        //firmware
+        if (consoleCommand[1] == "version"){
+          sendMessage (firmwareVersion,"/console/"); 
         }
-        if (consoleCommand[0] == "millis"){
-          //millis
-          sendMessage (String(millis(),DEC),"/console/"); 
-        }        
-        if (consoleCommand[0] == "ip"){
-          //get ip
-          sendMessage (ip2String(WiFi.localIP()),"/console/"); 
-        }
-        if (consoleCommand[0] == "starts"){
-          //number of starts of device
-          sendMessage (String(totalStarts),"/console/");  
-        }
-        if (consoleCommand[0] == "restart"){
-          //restart
-          sendMessage ("restarting","/console/"); 
+        if (consoleCommand[1] == "update"){
+          sendMessage ("Updating Firmware to: "+consoleCommand[2],"/console/"); 
+          updateFirmwareWithFile(consoleCommand[2]);
+          sendMessage ("Firmware update complete, restarting ..."+consoleCommand[2],"/console/"); 
+          delay(1000);
           restartDevice();
         }
-        if (consoleCommand[0] == "firmware"){
-          //firmware
-          if (consoleCommand[1] == "version"){
-            sendMessage (firmwareVersion,"/console/"); 
-          }
-          if (consoleCommand[1] == "update"){
-            sendMessage ("Updating Firmware to: "+consoleCommand[2],"/console/"); 
-            updateFirmwareWithFile(consoleCommand[2]);
-            sendMessage ("Firmware update complete, restarting ..."+consoleCommand[2],"/console/"); 
-            delay(1000);
-            restartDevice();
-          }
-          if (consoleCommand[1] == "rollback"){
-            sendMessage ("Restoring firmware to previous version ...","/console/firmware"); 
-            updateFirmwareWithFile(firmwareRollBackUrl);
-            sendMessage ("Firmware update complete, restarting ..."+consoleCommand[2],"/console/");
-            delay(1000);
-            restartDevice();
-          }
-        }
-        if (consoleCommand[0] == "preferences"){
-          if (consoleCommand[1] == "read"){
-            readPreferences(consoleCommand[2]);
-          }
-          if (consoleCommand[1] == "write"){
-            writePreferences(consoleCommand[2]);
-          }
-          if (consoleCommand[1] == "clear"){
-            clearPreferences(consoleCommand[2]);
-          } 
-          if (consoleCommand[1] == "set"){
-            setPreferences(consoleCommand[2],consoleCommand[3]);
-          }
-        }
-        if (consoleCommand[0] == "var"){
-          preferences.begin("preferences", false);
-          if (consoleCommand[1] == "mqttdiag"){
-            //MQTT diagnostics on/off
-            if (consoleCommand[2] == "get"){
-              sendMessage (String(messagingDiagMQTT), "/console/var/mqtt diagnostics/get",true);              
-            }
-            if (consoleCommand[2] == "set"){
-              if (consoleCommand[3] == "true" || consoleCommand[3] == "1"){
-                messagingDiagMQTT = true;
-              } else {
-                messagingDiagMQTT = false;
-              }
-              sendMessage (String(messagingDiagMQTT), "/console/var/mqtt diagnostics/set",true);              
-            }
-            if (consoleCommand[2] == "read"){
-               messagingDiagMQTT = preferences.getBool("mqttdiag",false);
-               sendMessage (String(messagingDiagMQTT), "/console/var/mqtt diagnostics/read",true);              
-            }                                    
-            if (consoleCommand[2] == "write"){
-              if (consoleCommand[3] == "true" || consoleCommand[3] == "1"){
-                messagingDiagMQTT = true;
-              } else {
-                messagingDiagMQTT = false;
-              }
-              preferences.putBool("mqttdiag",messagingDiagMQTT);
-              sendMessage (String(messagingDiagMQTT), "/console/var/mqtt diagnostics/write",true);
-            }
-            if (consoleCommand[2] == "default"){
-              preferences.remove("mqttdiag");              
-              sendMessage ("set, requires restart", "/console/var/mqttdiag/default",false);
-            }
-          }
-          if (consoleCommand[1] == "serialdiag"){
-            //Serial diagnostics on/off
-            if (consoleCommand[2] == "get"){
-              sendMessage (String(messagingDiagSerial), "/console/var/serial diagnostics/get",true);              
-            }
-            if (consoleCommand[2] == "set"){
-              if (consoleCommand[3] == "true" || consoleCommand[3] == "1"){
-                messagingDiagSerial = true;
-              } else {
-                messagingDiagSerial = false;
-              }
-              sendMessage (String(messagingDiagSerial), "/console/var/serial diagnostics/set",true);              
-            }
-            if (consoleCommand[2] == "read"){
-               messagingDiagSerial = preferences.getBool("serialdiag",false);
-               sendMessage (String(messagingDiagSerial), "/console/var/serial diagnostics/read",true);              
-            }                                    
-            if (consoleCommand[2] == "write"){
-              if (consoleCommand[3] == "true" || consoleCommand[3] == "1"){
-                messagingDiagSerial = true;
-              } else {
-                messagingDiagSerial = false;
-              }
-              preferences.putBool("serialdiag",messagingDiagSerial);
-              sendMessage (String(messagingDiagSerial), "/console/var/serial diagnostics/write",true);
-            }
-            if (consoleCommand[2] == "default"){
-              preferences.remove("serialdiag");              
-              sendMessage ("set, requires restart", "/console/var/serialdiags/default",false);
-            }
-          }
-          if (consoleCommand[1] == "totalstarts"){
-            if (consoleCommand[2] == "get"){
-              sendMessage (String(totalStarts), "/console/var/totalstarts/get",true);    
-            }
-            if (consoleCommand[2] == "set"){
-              totalStarts = atol(consoleCommand[3].c_str());
-              sendMessage (String(totalStarts), "/console/var/totalstarts/set",true);  
-            }
-                        
-            if (consoleCommand[2] == "read"){
-              totalStarts = preferences.getLong("totalStarts", 0);
-              sendMessage (String(totalStarts), "/console/var/totalstarts/read",true);    
-            }
-            if (consoleCommand[2] == "write"){
-              totalStarts = atol(consoleCommand[3].c_str());
-              preferences.putLong("totalStarts",totalStarts);
-              sendMessage (String(totalStarts), "/console/var/totalstarts/write",true);    
-            }
-            if (consoleCommand[2] == "default"){
-              preferences.remove("totalStarts");              
-              sendMessage ("set, requires restart", "/console/var/totalStarts/default",false);
-            }
-          }            
-          if (consoleCommand[1] == "adminusername"){
-            if (consoleCommand[2] == "get"){
-              sendMessage (adminUserName, "/console/var/adminusername/get",false);
-            }
-            if (consoleCommand[2] == "set"){
-              adminUserName = consoleCommand[3];
-              sendMessage (adminUserName, "/console/var/adminusername/set",false);
-            }
-            if (consoleCommand[2] == "read"){
-              adminUserName = preferences.getString("adminusername",adminUserName);
-              sendMessage (adminUserName, "/console/var/adminusername/read",false);
-            }
-            if (consoleCommand[2] == "write"){
-              adminUserName = consoleCommand[3];
-              preferences.putString("adminusername",adminUserName);              
-              sendMessage (adminUserName, "/console/var/adminusername/write",false);
-            }
-            if (consoleCommand[2] == "default"){
-              preferences.remove("adminusername");              
-              sendMessage ("set, requires restart", "/console/var/adminusername/default",false);
-            }
-          }
-          if (consoleCommand[1] == "adminpassword"){
-            if (consoleCommand[2] == "get"){
-              sendMessage (adminPassword, "/console/var/adminpassword/get",false);
-            }
-            if (consoleCommand[2] == "set"){
-              adminPassword = consoleCommand[3];
-              sendMessage (adminPassword, "/console/var/adminpassword/set",false);
-            }
-            if (consoleCommand[2] == "read"){
-              adminPassword = preferences.getString("adminpassword",adminPassword);
-              sendMessage (adminPassword, "/console/var/adminpassword/read",false);
-            }
-            if (consoleCommand[2] == "write"){
-              adminPassword = consoleCommand[3];
-              preferences.putString("adminpassword",adminPassword);              
-              sendMessage (adminPassword, "/console/var/adminpassword/write",false);
-            }
-            if (consoleCommand[2] == "default"){
-              preferences.remove("adminpassword");              
-              sendMessage ("set, requires restart", "/console/var/adminpassword/default",false);
-            }
-          }
-      /*
-                if (consoleCommand[1] == "--- template -----"){
-                  if (consoleCommand[2] == "get"){
-                    sendMessage (String(-- template -----), "/console/var/-- template -----/get",false);
-                  }
-                  if (consoleCommand[2] == "set"){
-                    sendMessage (String(-- template -----), "/console/var/-- template -----/set",false);
-                  }
-                  if (consoleCommand[2] == "read"){
-                    sendMessage (String(-- template -----), "/console/var/-- template -----/read",false);
-                  }
-                  if (consoleCommand[2] == "write"){
-                    sendMessage (String(-- template -----), "/console/var/-- template -----/write",false);
-                  }            
-                } 
-      */                   
-          preferences.end();
+        if (consoleCommand[1] == "rollback"){
+          sendMessage ("Restoring firmware to previous version ...","/console/firmware"); 
+          updateFirmwareWithFile(firmwareRollBackUrl);
+          sendMessage ("Firmware update complete, restarting ..."+consoleCommand[2],"/console/");
+          delay(1000);
+          restartDevice();
         }
       }
-    }   
+      if (consoleCommand[0] == "preferences"){
+        if (consoleCommand[1] == "read"){
+          readPreferences(consoleCommand[2]);
+        }
+        if (consoleCommand[1] == "write"){
+          writePreferences(consoleCommand[2]);
+        }
+        if (consoleCommand[1] == "clear"){
+          clearPreferences(consoleCommand[2]);
+        } 
+        if (consoleCommand[1] == "set"){
+          setPreferences(consoleCommand[2],consoleCommand[3]);
+        }
+      }
+      if (consoleCommand[0] == "var"){
+        preferences.begin("preferences", false);
+        if (consoleCommand[1] == "mqttdiag"){
+          //MQTT diagnostics on/off
+          if (consoleCommand[2] == "get"){
+            sendMessage (String(messagingDiagMQTT), "/console/var/mqtt diagnostics/get",true);              
+          }
+          if (consoleCommand[2] == "set"){
+            if (consoleCommand[3] == "true" || consoleCommand[3] == "1"){
+              messagingDiagMQTT = true;
+            } else {
+              messagingDiagMQTT = false;
+            }
+            sendMessage (String(messagingDiagMQTT), "/console/var/mqtt diagnostics/set",true);              
+          }
+          if (consoleCommand[2] == "read"){
+              messagingDiagMQTT = preferences.getBool("mqttdiag",false);
+              sendMessage (String(messagingDiagMQTT), "/console/var/mqtt diagnostics/read",true);              
+          }                                    
+          if (consoleCommand[2] == "write"){
+            if (consoleCommand[3] == "true" || consoleCommand[3] == "1"){
+              messagingDiagMQTT = true;
+            } else {
+              messagingDiagMQTT = false;
+            }
+            preferences.putBool("mqttdiag",messagingDiagMQTT);
+            sendMessage (String(messagingDiagMQTT), "/console/var/mqtt diagnostics/write",true);
+          }
+          if (consoleCommand[2] == "default"){
+            preferences.remove("mqttdiag");              
+            sendMessage ("set to default, restart to apply!", "/console/var/mqttdiag/default",false);
+          }
+        }
+        if (consoleCommand[1] == "serialdiag"){
+          //Serial diagnostics on/off
+          if (consoleCommand[2] == "get"){
+            sendMessage (String(messagingDiagSerial), "/console/var/serial diagnostics/get",true);              
+          }
+          if (consoleCommand[2] == "set"){
+            if (consoleCommand[3] == "true" || consoleCommand[3] == "1"){
+              messagingDiagSerial = true;
+            } else {
+              messagingDiagSerial = false;
+            }
+            sendMessage (String(messagingDiagSerial), "/console/var/serial diagnostics/set",true);              
+          }
+          if (consoleCommand[2] == "read"){
+              messagingDiagSerial = preferences.getBool("serialdiag",false);
+              sendMessage (String(messagingDiagSerial), "/console/var/serial diagnostics/read",true);              
+          }                                    
+          if (consoleCommand[2] == "write"){
+            if (consoleCommand[3] == "true" || consoleCommand[3] == "1"){
+              messagingDiagSerial = true;
+            } else {
+              messagingDiagSerial = false;
+            }
+            preferences.putBool("serialdiag",messagingDiagSerial);
+            sendMessage (String(messagingDiagSerial), "/console/var/serial diagnostics/write",true);
+          }
+          if (consoleCommand[2] == "default"){
+            preferences.remove("serialdiag");              
+            sendMessage ("set, requires restart", "/console/var/serialdiags/default",false);
+          }
+        }
+        if (consoleCommand[1] == "totalstarts"){
+          if (consoleCommand[2] == "get"){
+            sendMessage (String(totalStarts), "/console/var/totalstarts/get",true);    
+          }
+          if (consoleCommand[2] == "set"){
+            totalStarts = atol(consoleCommand[3].c_str());
+            sendMessage (String(totalStarts), "/console/var/totalstarts/set",true);  
+          }
+                      
+          if (consoleCommand[2] == "read"){
+            totalStarts = preferences.getLong("totalStarts", 0);
+            sendMessage (String(totalStarts), "/console/var/totalstarts/read",true);    
+          }
+          if (consoleCommand[2] == "write"){
+            totalStarts = atol(consoleCommand[3].c_str());
+            preferences.putLong("totalStarts",totalStarts);
+            sendMessage (String(totalStarts), "/console/var/totalstarts/write",true);    
+          }
+          if (consoleCommand[2] == "default"){
+            preferences.remove("totalStarts");              
+            sendMessage ("set to default, restart to apply!", "/console/var/totalStarts/default",false);
+          }
+        }            
+        if (consoleCommand[1] == "adminusername"){
+          if (consoleCommand[2] == "get"){
+            sendMessage (adminUserName, "/console/var/adminusername/get",false);
+          }
+          if (consoleCommand[2] == "set"){
+            adminUserName = consoleCommand[3];
+            sendMessage (adminUserName, "/console/var/adminusername/set",false);
+          }
+          if (consoleCommand[2] == "read"){
+            adminUserName = preferences.getString("adminusername",adminUserName);
+            sendMessage (adminUserName, "/console/var/adminusername/read",false);
+          }
+          if (consoleCommand[2] == "write"){
+            adminUserName = consoleCommand[3];
+            preferences.putString("adminusername",adminUserName);              
+            sendMessage (adminUserName, "/console/var/adminusername/write",false);
+          }
+          if (consoleCommand[2] == "default"){
+            preferences.remove("adminusername");              
+            sendMessage ("set to default, restart to apply!", "/console/var/adminusername/default",false);
+          }
+        }
+        if (consoleCommand[1] == "adminpassword"){
+          if (consoleCommand[2] == "get"){
+            sendMessage (adminPassword, "/console/var/adminpassword/get",false);
+          }
+          if (consoleCommand[2] == "set"){
+            adminPassword = consoleCommand[3];
+            sendMessage (adminPassword, "/console/var/adminpassword/set",false);
+          }
+          if (consoleCommand[2] == "read"){
+            adminPassword = preferences.getString("adminpassword",adminPassword);
+            sendMessage (adminPassword, "/console/var/adminpassword/read",false);
+          }
+          if (consoleCommand[2] == "write"){
+            adminPassword = consoleCommand[3];
+            preferences.putString("adminpassword",adminPassword);              
+            sendMessage (adminPassword, "/console/var/adminpassword/write",false);
+          }
+          if (consoleCommand[2] == "default"){
+            preferences.remove("adminpassword");              
+            sendMessage ("set to default, restart to apply!", "/console/var/adminpassword/default",false);
+          }
+        }
+        if (consoleCommand[1] == "mqtthost"){
+          if (consoleCommand[2] == "get"){
+            sendMessage (MQTThost, "/console/var/mqtthost/get",false);
+          }
+          if (consoleCommand[2] == "set"){
+            MQTThost = consoleCommand[3];
+            sendMessage (MQTThost, "/console/var/mqtthost/set",false);
+          }
+          if (consoleCommand[2] == "read"){
+            MQTThost = preferences.getString("mqtthost",MQTThost);
+            sendMessage (MQTThost, "/console/var/mqtthost/read",false);
+          }
+          if (consoleCommand[2] == "write"){
+            MQTThost = consoleCommand[3];
+            preferences.putString("mqtthost",MQTThost);  
+            sendMessage (MQTThost, "/console/var/mqtthost/write",false);
+          }
+          if (consoleCommand[2] == "default"){
+            preferences.remove("mqtthost");              
+            sendMessage ("set to default, restart to apply!", "/console/var/mqtthost/default",false);
+          }         
+        }
+        if (consoleCommand[1] == "mqttport"){
+          if (consoleCommand[2] == "get"){
+            sendMessage (String(MQTTport), "/console/var/mqttport/get",false);
+          }
+          if (consoleCommand[2] == "set"){
+            MQTTport = atol(consoleCommand[3].c_str());
+            sendMessage (String(MQTTport), "/console/var/mqttport/set",false);
+          }
+          if (consoleCommand[2] == "read"){
+            MQTTport = preferences.getInt("mqttport",MQTTport);
+            sendMessage (String(MQTTport), "/console/var/mqttport/read",false);
+          }
+          if (consoleCommand[2] == "write"){
+            MQTTport = atol(consoleCommand[3].c_str());
+            preferences.putInt("mqttport",MQTTport);  
+            sendMessage (String(MQTTport), "/console/var/mqttport/write",false);
+          }
+          if (consoleCommand[2] == "default"){
+            preferences.remove("mqttport");              
+            sendMessage ("set to default, restart to apply!", "/console/var/mqttport/default",false);
+          }         
+        }
+        if (consoleCommand[1] == "mqttusername"){
+          if (consoleCommand[2] == "get"){
+            sendMessage (MQTTuserName, "/console/var/mqttusername/get",false);
+          }
+          if (consoleCommand[2] == "set"){
+            MQTTuserName = consoleCommand[3];
+            sendMessage (MQTTuserName, "/console/var/mqttusername/set",false);
+          }
+          if (consoleCommand[2] == "read"){
+            MQTTuserName = preferences.getString("mqttusername",MQTTuserName);
+            sendMessage (MQTTuserName, "/console/var/mqttusername/read",false);
+          }
+          if (consoleCommand[2] == "write"){
+            MQTTuserName = consoleCommand[3];
+            preferences.putString("mqttusername",MQTTuserName);  
+            sendMessage (MQTTuserName, "/console/var/mqttusername/write",false);
+          }
+          if (consoleCommand[2] == "default"){
+            preferences.remove("mqttusername");              
+            sendMessage ("set to default, restart to apply!", "/console/var/mqttusername/default",false);
+          }         
+        }
+        if (consoleCommand[1] == "mqttpassword"){
+          if (consoleCommand[2] == "get"){
+            sendMessage (MQTTpassword, "/console/var/mqttpassword/get",false);
+          }
+          if (consoleCommand[2] == "set"){
+            MQTTpassword = consoleCommand[3];
+            sendMessage (MQTTpassword, "/console/var/mqttpassword/set",false);
+          }
+          if (consoleCommand[2] == "read"){
+            MQTTpassword = preferences.getString("mqttpassword",MQTTpassword);
+            sendMessage (MQTTpassword, "/console/var/mqttpassword/read",false);
+          }
+          if (consoleCommand[2] == "write"){
+            MQTTpassword = consoleCommand[3];
+            preferences.putString("mqttpassword",MQTTpassword);  
+            sendMessage (MQTTpassword, "/console/var/mqttpassword/write",false);
+          }
+          if (consoleCommand[2] == "default"){
+            preferences.remove("mqttpassword");              
+            sendMessage ("set to default, restart to apply!", "/console/var/mqttpassword/default",false);
+          }         
+        }
+        if (consoleCommand[1] == "mqttrootpath"){
+          if (consoleCommand[2] == "get"){
+            sendMessage (MQTTrootPath, "/console/var/mqttrootpath/get",false);
+          }
+          if (consoleCommand[2] == "set"){
+            MQTTrootPath = consoleCommand[3];
+            sendMessage (MQTTrootPath, "/console/var/mqttrootpath/set",false);
+          }
+          if (consoleCommand[2] == "read"){
+            MQTTrootPath = preferences.getString("mqttrootpath",MQTTrootPath);
+            sendMessage (MQTTrootPath, "/console/var/mqttrootpath/read",false);
+          }
+          if (consoleCommand[2] == "write"){
+            MQTTrootPath = consoleCommand[3];
+            preferences.putString("mqttrootpath",MQTTrootPath);  
+            sendMessage (MQTTrootPath, "/console/var/mqttrootpath/write",false);
+          }
+          if (consoleCommand[2] == "default"){
+            preferences.remove("mqttrootpath");              
+            sendMessage ("set to default, restart to apply!", "/console/var/mqttrootpath/default",false);
+          }         
+        }
+        preferences.end();
+      }
+    }
+  }
+  void setupInstruction(){
+    adminActive=true;
+    handleInstruction("");
+    adminActive=false;
+  }  
 /* [Default Arduino Functions]: --------------------------------------------------------------------------- */
   /* [DAF: Arduino Setup] : ------------------------------------------------------------------------------- */
     void setup(){
