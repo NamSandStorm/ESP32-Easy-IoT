@@ -902,7 +902,7 @@
       Serial.println("running setupAsyncWebServer ...");setupAsyncWebServer();Serial.println("... setupAsyncWebServer complete");
       Serial.println("running setupSensors ...");setupSensors();Serial.println("... setupSensors() complete");
       Serial.println("running setupActuators ...");setupActuators();Serial.println("... setupActuators complete");
-      Serial.println("running planned bootup delay to stabilise the system ...");while (bootDelay*1000>millis()){}Serial.println("... bootup delay complete");
+      Serial.println("running planned bootup delay to stabilise the system ..."); while (bootDelay*1000>millis()){}Serial.println("... bootup delay complete");
       Serial.println("... startup complete");
     }
   /* [DAF: Arduino Loop] : -------------------------------------------------------------------------------- */
